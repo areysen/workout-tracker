@@ -516,7 +516,24 @@ export default function WorkoutLog() {
   };
 
   const tabs = [...log.map((d) => d.day), "History"];
+  const testSupabase = async () => {
+    const { error } = await supabase.from("workout_logs").insert({
+      log_date: new Date().toISOString(),
+      log_data: {
+        test: true,
+        timestamp: new Date().toLocaleString(),
+        message: "This is a test log from the frontend"
+      }
+    });
 
+    if (error) {
+      console.error("❌ Supabase test failed:", error.message);
+      alert("❌ Supabase test failed.");
+    } else {
+      console.log("✅ Supabase test worked!");
+      alert("✅ Supabase test worked!");
+    }
+  };
   return (
     <div className="min-h-screen w-full bg-[#242B2F] text-white">
       <div className="p-4 space-y-6 max-w-6xl mx-auto">
@@ -560,6 +577,11 @@ export default function WorkoutLog() {
             </button>
           ))}
         </div>
+        <button
+          onClick={testSupabase}
+          className="border border-white text-white px-3 py-1 rounded text-sm bg-transparent hover:bg-white/10">
+          Test Supabase Sync
+        </button>
 
         {activeTab === tabs.length - 1 ? (
           <div className="bg-[#343E44] p-4 rounded-xl shadow-md">

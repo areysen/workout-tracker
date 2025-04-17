@@ -560,11 +560,7 @@ export default function WorkoutLog() {
             </button>
           ))}
         </div>
-        <button
-          onClick={testSupabase}
-          className="border border-white text-white px-3 py-1 rounded text-sm bg-transparent hover:bg-white/10">
-          Test Supabase Sync
-        </button>
+
 
         {activeTab === tabs.length - 1 ? (
           <div className="bg-[#343E44] p-4 rounded-xl shadow-md">
@@ -705,7 +701,13 @@ export default function WorkoutLog() {
                   ))}
                 </div>
 
-                <div className="flex justify-end"></div>
+                <div className="flex justify-end">
+                  <button
+                    onClick={() => finishDay(dayIndex)}
+                    className="text-sm bg-[#C63663] hover:bg-[#b03056] text-white px-3 py-1 rounded">
+                    Finish Day
+                  </button>
+                </div>
               </div>
             )
         )}

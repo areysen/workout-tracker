@@ -516,24 +516,7 @@ export default function WorkoutLog() {
   };
 
   const tabs = [...log.map((d) => d.day), "History"];
-  const testSupabase = async () => {
-    const { error } = await supabase.from("workout_logs").insert({
-      log_date: new Date().toISOString(),
-      log_data: {
-        test: true,
-        timestamp: new Date().toLocaleString(),
-        message: "This is a test log from the frontend"
-      }
-    });
 
-    if (error) {
-      console.error("❌ Supabase test failed:", error.message);
-      alert("❌ Supabase test failed.");
-    } else {
-      console.log("✅ Supabase test worked!");
-      alert("✅ Supabase test worked!");
-    }
-  };
   return (
     <div className="min-h-screen w-full bg-[#242B2F] text-white">
       <div className="p-4 space-y-6 max-w-6xl mx-auto">
@@ -722,13 +705,7 @@ export default function WorkoutLog() {
                   ))}
                 </div>
 
-                <div className="flex justify-end">
-                  <button
-                    onClick={() => finishDay(dayIndex)}
-                    className="text-sm bg-[#C63663] hover:bg-[#b03056] text-white px-3 py-1 rounded">
-                    Finish Day
-                  </button>
-                </div>
+                <div className="flex justify-end"></div>
               </div>
             )
         )}

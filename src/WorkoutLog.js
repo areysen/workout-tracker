@@ -1,6 +1,6 @@
 // WorkoutLog.js with Searchable History View & All Features
 import React, { useState, useEffect, useRef } from "react";
-
+import { supabase } from "./supabaseClient";
 export default function WorkoutLog() {
   const rpeScale = [
     { value: "1", description: "Very light, warm-up only" },

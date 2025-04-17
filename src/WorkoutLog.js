@@ -437,12 +437,12 @@ export default function WorkoutLog() {
   useEffect(() => {
     localStorage.setItem("workoutHistory", JSON.stringify(history));
   }, [history]);
-  
+
   useEffect(() => {
-  if (tabRefs.current[activeTab]) {
-    tabRefs.current[activeTab].scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' });
-  }
-}, [activeTab]);
+    if (tabRefs.current[activeTab]) {
+      tabRefs.current[activeTab].scrollIntoView({ behavior: "smooth", inline: "center", block: "nearest" });
+    }
+  }, [activeTab]);
 
   const handleChange = (dayIndex, exerciseIndex, field, value) => {
     const updatedLog = [...log];
@@ -461,7 +461,7 @@ export default function WorkoutLog() {
     setLog(updatedLog);
   };
 
-  const finishDay = (dayIndex) => {
+  const finishDay = async (dayIndex) => {
     const updatedLog = [...log];
     const today = new Date().toLocaleDateString();
     const finished = {
@@ -477,7 +477,24 @@ export default function WorkoutLog() {
         notes: ex.notes
       }))
     };
+
+    // ✅ Save to local history
     setHistory((prev) => [...prev, finished]);
+
+    // ✅ Save to Supabase
+    const { error } = await supabase.from("workout_logs").insert({
+      log_date: new Date().toISOString(),
+      log_data: finished
+    });
+
+    if (error) {
+      console.error("❌ Supabase upload failed:", error.message);
+      alert("Failed to sync with Supabase.");
+    } else {
+      console.log("✅ Workout saved to Supabase.");
+    }
+
+    // ✅ Clear the log for the day
     updatedLog[dayIndex].exercises.forEach((ex) => {
       if (ex.weight) ex.prevWeight = ex.weight;
       ex.weight = "";

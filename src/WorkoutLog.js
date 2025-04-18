@@ -434,15 +434,16 @@ export default function WorkoutLog() {
         console.log("✅ Loaded logs from Supabase:", data);
         const todayDate = new Date().toISOString().split("T")[0];
 
-        const todayLog = defaultLog.map((day) => ({
-          ...day,
-          date: todayDate
-        }));
-
+        const todayLogFromSupabase = data.filter((entry) => entry.date === todayDate);
         const pastLogs = data.filter((entry) => entry.date !== todayDate);
-        const todayLogFromSupabase = data.find((entry) => entry.date === todayDate);
 
-        setLog(todayLogFromSupabase ? todayLogFromSupabase : todayLog);
+        // merge Supabase entries into defaultLog
+        const mergedLog = defaultLog.map((defaultDay) => {
+          const match = todayLogFromSupabase.find((entry) => entry.day === defaultDay.day);
+          return match ? { ...defaultDay, ...match } : defaultDay;
+        });
+
+        setLog(mergedLog);
         setHistory(pastLogs);
       }
     };

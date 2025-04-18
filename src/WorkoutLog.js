@@ -487,12 +487,32 @@ export default function WorkoutLog() {
   };
 
   const saveWorkoutToSupabase = async (logEntry) => {
-    const { error } = await supabase.from("workout_logs").insert([logEntry]);
+    const { data: existing, error: fetchError } = await supabase
+      .from("workout_logs")
+      .select("id")
+      .eq("date", logEntry.date)
+      .eq("day", logEntry.day);
+
+    if (fetchError) {
+      console.error("❌ Error checking existing log:", fetchError.message);
+      return;
+    }
+
+    if (existing.length > 0) {
+      alert("⚠️ You’ve already logged this day’s workout.");
+      return;
+    }
+
+    const { data, error } = await supabase.from("workout_logs").insert([logEntry]).select(); // returns the inserted row including the UUID
+
     if (error) {
       alert("❌ Failed to save workout");
       console.error(error);
     } else {
       alert("✅ Workout saved to Supabase");
+
+      // Optional: Add it to history immediately with UUID
+      setHistory((prev) => [...prev, data[0]]);
     }
   };
 
@@ -500,14 +520,15 @@ export default function WorkoutLog() {
     const completedLog = log[dayIndex];
     completedLog.date = new Date().toISOString().split("T")[0];
 
-    // Optional: save to local history for reference
     setHistory((prev) => [...prev, completedLog]);
-
-    // ✅ Save to Supabase
     saveWorkoutToSupabase(completedLog);
 
-    // Optional: refresh Supabase state to reflect update
-    // fetchWorkoutLogs(); // uncomment if you want to re-sync the latest data
+    // Clear form
+    const resetLog = defaultLog.map((day) => ({
+      ...day,
+      date: completedLog.date
+    }));
+    setLog(resetLog);
   };
 
   const exportLog = () => {
@@ -585,11 +606,13 @@ export default function WorkoutLog() {
                     <h3 className="font-semibold text-[#C63663]">
                       {entry.date} – {entry.day} ({entry.muscleGroup})
                     </h3>
-                    <button
-                      onClick={() => deleteWorkout(entry.id)}
-                      className="text-sm text-red-400 underline hover:text-red-300">
-                      Delete
-                    </button>
+                    {entry.id && (
+                      <button
+                        onClick={() => deleteWorkout(entry.id)}
+                        className="text-sm text-red-400 underline hover:text-red-300">
+                        Delete
+                      </button>
+                    )}
                   </div>
                   <ul className="text-sm ml-4 mt-1 list-disc text-gray-300">
                     {entry.exercises.map((ex, j) => (

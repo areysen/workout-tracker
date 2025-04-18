@@ -561,7 +561,6 @@ export default function WorkoutLog() {
           ))}
         </div>
 
-
         {activeTab === tabs.length - 1 ? (
           <div className="bg-[#343E44] p-4 rounded-xl shadow-md">
             <h2 className="text-xl font-semibold mb-4 text-white">Workout History</h2>
@@ -706,6 +705,14 @@ export default function WorkoutLog() {
                     onClick={() => finishDay(dayIndex)}
                     className="text-sm bg-[#C63663] hover:bg-[#b03056] text-white px-3 py-1 rounded">
                     Finish Day
+                  </button>
+                  <button
+                    onClick={() => {
+                      localStorage.clear();
+                      window.location.reload();
+                    }}
+                    className="text-xs text-red-400 underline mb-2">
+                    Reset Local History
                   </button>
                 </div>
               </div>

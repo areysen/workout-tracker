@@ -429,23 +429,22 @@ export default function WorkoutLog() {
       const { data, error } = await supabase.from("workout_logs").select("*").order("date", { ascending: true });
 
       if (error) {
-        console.error("❌ Error loading logs:", error.message, error.details, error);
-      } else {
-        console.log("✅ Loaded logs from Supabase:", data);
-        const todayDate = new Date().toISOString().split("T")[0];
-
-        const todayLogFromSupabase = data.filter((entry) => entry.date === todayDate);
-        const pastLogs = data.filter((entry) => entry.date !== todayDate);
-
-        // merge Supabase entries into defaultLog
-        const mergedLog = defaultLog.map((defaultDay) => {
-          const match = todayLogFromSupabase.find((entry) => entry.day === defaultDay.day);
-          return match ? { ...defaultDay, ...match } : defaultDay;
-        });
-
-        setLog(mergedLog);
-        setHistory(pastLogs);
+        console.error("❌ Error loading logs:", error.message, error.details);
+        return;
       }
+
+      const todayDate = new Date().toISOString().split("T")[0];
+      const todayEntries = data.filter((entry) => entry.date === todayDate);
+      const pastLogs = data.filter((entry) => entry.date !== todayDate);
+
+      // Merge today's entries into defaultLog
+      const mergedLog = defaultLog.map((defaultDay) => {
+        const match = todayEntries.find((entry) => entry.day === defaultDay.day);
+        return match ? { ...defaultDay, ...match } : defaultDay;
+      });
+
+      setLog(mergedLog);
+      setHistory(pastLogs);
     };
 
     fetchWorkoutLogs();
@@ -517,13 +516,20 @@ export default function WorkoutLog() {
   };
 
   const finishDay = (dayIndex) => {
+    const actualDay = new Date().toLocaleString("en-US", { weekday: "long" });
+    const selectedDay = log[dayIndex].day;
+
+    if (selectedDay !== actualDay) {
+      alert(`⚠️ Today is ${actualDay}. You’re viewing ${selectedDay}.`);
+      return;
+    }
+
     const completedLog = log[dayIndex];
     completedLog.date = new Date().toISOString().split("T")[0];
 
     setHistory((prev) => [...prev, completedLog]);
     saveWorkoutToSupabase(completedLog);
 
-    // Clear form
     const resetLog = defaultLog.map((day) => ({
       ...day,
       date: completedLog.date

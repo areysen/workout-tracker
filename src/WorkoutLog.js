@@ -442,7 +442,7 @@ export default function WorkoutLog() {
         const pastLogs = data.filter((entry) => entry.date !== todayDate);
         const todayLogFromSupabase = data.find((entry) => entry.date === todayDate);
 
-        setLog(todayLogFromSupabase ? [todayLogFromSupabase] : todayLog);
+        setLog(todayLogFromSupabase ? todayLogFromSupabase : todayLog);
         setHistory(pastLogs);
       }
     };

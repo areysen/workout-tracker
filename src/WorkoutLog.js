@@ -429,7 +429,7 @@ export default function WorkoutLog() {
       const { data, error } = await supabase.from("workout_logs").select("*").order("date", { ascending: true });
 
       if (error) {
-        console.error("❌ Error loading logs:", error);
+        console.error("❌ Error loading logs:", error.message, error.details, error);
       } else {
         console.log("✅ Loaded logs from Supabase:", data);
         const todayDate = new Date().toISOString().split("T")[0];
@@ -461,6 +461,18 @@ export default function WorkoutLog() {
     const updatedLog = [...log];
     updatedLog[dayIndex].exercises[exerciseIndex][field] = value;
     setLog(updatedLog);
+  };
+
+  const deleteWorkout = async (id) => {
+    const { error } = await supabase.from("workout_logs").delete().eq("id", id);
+
+    if (error) {
+      console.error("❌ Failed to delete workout:", error.message);
+      alert("Failed to delete workout.");
+    } else {
+      alert("✅ Workout deleted.");
+      fetchWorkoutLogs(); // refresh history
+    }
   };
 
   const toggleWarmup = (dayIndex, warmup) => {
@@ -569,9 +581,16 @@ export default function WorkoutLog() {
             ) : (
               filteredHistory.map((entry, i) => (
                 <div key={i} className="mb-4">
-                  <h3 className="font-semibold text-[#C63663]">
-                    {entry.date} – {entry.day} ({entry.muscleGroup})
-                  </h3>
+                  <div className="flex justify-between items-center">
+                    <h3 className="font-semibold text-[#C63663]">
+                      {entry.date} – {entry.day} ({entry.muscleGroup})
+                    </h3>
+                    <button
+                      onClick={() => deleteWorkout(entry.id)}
+                      className="text-sm text-red-400 underline hover:text-red-300">
+                      Delete
+                    </button>
+                  </div>
                   <ul className="text-sm ml-4 mt-1 list-disc text-gray-300">
                     {entry.exercises.map((ex, j) => (
                       <li key={j}>

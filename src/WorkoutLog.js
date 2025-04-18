@@ -402,15 +402,9 @@ export default function WorkoutLog() {
     }
   ];
 
-  const [log, setLog] = useState(() => {
-    const saved = localStorage.getItem("workoutLog");
-    return saved ? JSON.parse(saved) : defaultLog;
-  });
+  const [log, setLog] = useState([]);
 
-  const [history, setHistory] = useState(() => {
-    const saved = localStorage.getItem("workoutHistory");
-    return saved ? JSON.parse(saved) : [];
-  });
+  const [history, setHistory] = useState([]);
 
   const [searchTerm, setSearchTerm] = useState("");
   const filteredHistory = history.filter((entry) => {
@@ -431,12 +425,30 @@ export default function WorkoutLog() {
   const tabRefs = useRef([]);
 
   useEffect(() => {
-    localStorage.setItem("workoutLog", JSON.stringify(log));
-  }, [log]);
+    const fetchWorkoutLogs = async () => {
+      const { data, error } = await supabase.from("workout_logs").select("*").order("date", { ascending: true });
 
-  useEffect(() => {
-    localStorage.setItem("workoutHistory", JSON.stringify(history));
-  }, [history]);
+      if (error) {
+        console.error("❌ Error loading logs:", error);
+      } else {
+        console.log("✅ Loaded logs from Supabase:", data);
+        const todayDate = new Date().toISOString().split("T")[0];
+
+        const todayLog = defaultLog.map((day) => ({
+          ...day,
+          date: todayDate
+        }));
+
+        const pastLogs = data.filter((entry) => entry.date !== todayDate);
+        const todayLogFromSupabase = data.find((entry) => entry.date === todayDate);
+
+        setLog(todayLogFromSupabase ? [todayLogFromSupabase] : todayLog);
+        setHistory(pastLogs);
+      }
+    };
+
+    fetchWorkoutLogs();
+  }, []);
 
   useEffect(() => {
     if (tabRefs.current[activeTab]) {
@@ -461,49 +473,28 @@ export default function WorkoutLog() {
     setLog(updatedLog);
   };
 
-  const finishDay = async (dayIndex) => {
-    const updatedLog = [...log];
-    const today = new Date().toLocaleDateString();
-    const finished = {
-      date: today,
-      day: log[dayIndex].day,
-      muscleGroup: log[dayIndex].muscleGroup,
-      exercises: log[dayIndex].exercises.map((ex) => ({
-        name: ex.name,
-        weight: ex.weight,
-        reps: ex.reps,
-        sets: ex.sets,
-        rpe: ex.rpe,
-        notes: ex.notes
-      }))
-    };
+  const saveWorkoutToSupabase = async (logEntry) => {
+    const { error } = await supabase.from("workout_logs").insert([logEntry]);
+    if (error) {
+      alert("❌ Failed to save workout");
+      console.error(error);
+    } else {
+      alert("✅ Workout saved to Supabase");
+    }
+  };
 
-    // ✅ Save to local history
-    setHistory((prev) => [...prev, finished]);
+  const finishDay = (dayIndex) => {
+    const completedLog = log[dayIndex];
+    completedLog.date = new Date().toISOString().split("T")[0];
+
+    // Optional: save to local history for reference
+    setHistory((prev) => [...prev, completedLog]);
 
     // ✅ Save to Supabase
-    const { error } = await supabase.from("workout_logs").insert({
-      log_date: new Date().toISOString(),
-      log_data: finished
-    });
+    saveWorkoutToSupabase(completedLog);
 
-    if (error) {
-      console.error("❌ Supabase upload failed:", error.message);
-      alert("Failed to sync with Supabase.");
-    } else {
-      console.log("✅ Workout saved to Supabase.");
-    }
-
-    // ✅ Clear the log for the day
-    updatedLog[dayIndex].exercises.forEach((ex) => {
-      if (ex.weight) ex.prevWeight = ex.weight;
-      ex.weight = "";
-      ex.rpe = "";
-      ex.rest = "";
-      ex.notes = "";
-      ex.done = false;
-    });
-    setLog(updatedLog);
+    // Optional: refresh Supabase state to reflect update
+    // fetchWorkoutLogs(); // uncomment if you want to re-sync the latest data
   };
 
   const exportLog = () => {

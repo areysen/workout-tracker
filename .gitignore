@@ -2,3 +2,4 @@ node_modules/
 .cache/
 .eslintcache
 .DS_Store
+/node_modules/.cache/default-development/9.pack

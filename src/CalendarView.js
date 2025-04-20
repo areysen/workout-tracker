@@ -19,6 +19,7 @@ import {
 } from "date-fns";
 import { useNavigate, useLocation } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
+import { supabase } from "./supabaseClient";
 
 export default function CalendarView() {
     const navigate = useNavigate();
@@ -30,6 +31,7 @@ export default function CalendarView() {
 
     const [viewMode, setViewMode] = useState("week");
     const [selectedDate, setSelectedDate] = useState(today);
+    const [workoutLogs, setWorkoutLogs] = useState([]);
 
     const currentWeekStart = startOfWeek(selectedDate, { weekStartsOn: 1 });
     const currentMonth = new Date(getYear(selectedDate), getMonth(selectedDate));
@@ -79,7 +81,19 @@ export default function CalendarView() {
             monthRefs.current[format(selectedDate, "MMMM")].scrollIntoView({ behavior: "smooth" });
         }
     }, [viewMode, selectedDate]);
+    useEffect(() => {
+        async function fetchWorkoutLogs() {
+            const { data, error } = await supabase.from("workout_logs").select("*");
 
+            if (error) {
+                console.error("Error fetching logs:", error);
+            } else {
+                setWorkoutLogs(data);
+            }
+        }
+
+        fetchWorkoutLogs();
+    }, []);
     useEffect(() => {
         if (viewMode === "month" && todayRef.current) {
             todayRef.current.scrollIntoView({ behavior: "smooth", block: "center" });
@@ -119,7 +133,7 @@ export default function CalendarView() {
     };
 
     const renderControls = () => (
-        <div className="sticky top-0 bg-[#242B2F] z-10 p-2">
+        <div className="sticky top-0 bg-[#242B2F] z-10 pb-2">
             <div className="flex justify-between items-start mb-4 flex-wrap gap-2 sm:flex-nowrap">
                 <div className="flex items-center gap-2">
                     <button
@@ -129,24 +143,27 @@ export default function CalendarView() {
                     </button>
                 </div>
 
-                <div className="flex justify-center items-center gap-4">
-                    <button
-                        onClick={handlePrevious}
-                        className="text-xl text-white hover:text-[#C63663]"
-                        aria-label="Previous">
-                        ←
-                    </button>
-                    <h2 className="text-lg font-semibold text-[#C63663]">
-                        {viewMode === "week"
-                            ? `Week of ${format(currentWeekStart, "MMM d")}`
-                            : viewMode === "month"
-                              ? format(currentMonth, "MMMM yyyy")
-                              : ""}
-                    </h2>
-                    <button onClick={handleNext} className="text-xl text-white hover:text-[#C63663]" aria-label="Next">
-                        →
-                    </button>
-                </div>
+                {viewMode !== "year" && (
+                    <div className="flex justify-center items-center gap-4">
+                        <button
+                            onClick={handlePrevious}
+                            className="text-xl text-white hover:text-[#C63663]"
+                            aria-label="Previous">
+                            ←
+                        </button>
+                        <h2 className="text-lg font-semibold text-[#C63663]">
+                            {viewMode === "week"
+                                ? `Week of ${format(currentWeekStart, "MMM d")}`
+                                : format(currentMonth, "MMMM yyyy")}
+                        </h2>
+                        <button
+                            onClick={handleNext}
+                            className="text-xl text-white hover:text-[#C63663]"
+                            aria-label="Next">
+                            →
+                        </button>
+                    </div>
+                )}
 
                 <div className="flex items-center gap-2">
                     <button
@@ -201,6 +218,14 @@ export default function CalendarView() {
                             {dayOfWeek}
                         </div>
                         <div className="text-lg font-bold text-white">{dayNumber}</div>
+                        <div className="text-xs mt-1 text-gray-300">
+                            {(() => {
+                                const log = workoutLogs.find((l) => l.date === format(date, "yyyy-MM-dd"));
+                                if (log?.forecast) return "Planned";
+                                if (log) return "✓ Logged";
+                                return "";
+                            })()}
+                        </div>
                     </button>
                 );
             })}
@@ -236,7 +261,14 @@ export default function CalendarView() {
                                     <div className="font-semibold text-sm uppercase">
                                         {dayOfWeek}, {format(date, "MMM d")}
                                     </div>
-                                    <div className="text-xs text-gray-200">Tap to view workout details</div>
+                                    <div className="text-xs text-gray-200">
+                                        {(() => {
+                                            const log = workoutLogs.find((l) => l.date === format(date, "yyyy-MM-dd"));
+                                            if (log?.forecast) return "Planned workout";
+                                            if (log) return "Completed workout";
+                                            return "No workout logged";
+                                        })()}
+                                    </div>
                                 </div>
                             </div>
                         </button>
@@ -249,7 +281,7 @@ export default function CalendarView() {
     return (
         <div className="min-h-screen bg-[#242B2F] text-white p-4 max-w-3xl mx-auto">
             {renderControls()}
-            <div className="space-y-6 mt-4">
+            <div className="space-y-6 mt-2">
                 {viewMode === "month"
                     ? renderGridDays(daysThisMonth)
                     : viewMode === "week"

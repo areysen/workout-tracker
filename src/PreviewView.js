@@ -1,16 +1,13 @@
-import { useParams } from "react-router-dom";
+import { useParams, Link, useNavigate } from "react-router-dom";
 import { useEffect, useState } from "react";
 import { supabase } from "./supabaseClient";
+import { format, parseISO } from "date-fns";
 
 function PreviewView() {
     const { date } = useParams();
+    const navigate = useNavigate();
     const [logForDate, setLogForDate] = useState(null);
     const [loading, setLoading] = useState(true);
-    const formattedDate = new Date(date).toLocaleDateString(undefined, {
-        weekday: "short",
-        month: "short",
-        day: "numeric"
-    });
     useEffect(() => {
         async function fetchWorkoutLog() {
             setLoading(true);
@@ -43,11 +40,11 @@ function PreviewView() {
         <div className="min-h-screen bg-[#242B2F] text-white p-4 max-w-3xl mx-auto">
             <div className="flex justify-between items-center mb-4">
                 <button
-                    onClick={() => window.history.back()}
-                    className="text-sm text-white bg-[#343E44] px-3 py-1 rounded">
+                    onClick={() => navigate(-1)}
+                    className="text-sm border border-white px-3 py-1 rounded hover:bg-white/10">
                     ← Back
                 </button>
-                <h1 className="text-xl font-bold">Preview for {formattedDate}</h1>
+                <h1 className="text-xl font-bold">Preview for {format(parseISO(date), "EEE, MMM d")}</h1>
             </div>
 
             <div className="space-y-3">
@@ -67,6 +64,15 @@ function PreviewView() {
                     ))}
                 </ul>
             </div>
+            {!logForDate?.hasLoggedWorkout && (
+                <div className="mt-8 flex justify-center">
+                    <Link
+                        to={`/log/${date}`}
+                        className="bg-[#C63663] text-white px-6 py-3 rounded-xl shadow hover:brightness-110 transition w-full text-center">
+                        Start Workout
+                    </Link>
+                </div>
+            )}
         </div>
     );
 }

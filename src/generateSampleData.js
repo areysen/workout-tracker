@@ -65,7 +65,14 @@ export const generateSampleData = async () => {
             date: format(date, "yyyy-MM-dd"),
             day: format(date, "EEEE"),
             muscleGroup: workoutType,
-            exercises,
+            exercises: exercises.map((name) => ({
+                name,
+                sets: 3,
+                reps: 10,
+                weight: (Math.random() * 50 + 40).toFixed(1),
+                rpe: Math.floor(Math.random() * 4 + 6),
+                notes: "Planned workout"
+            })),
             forecast: true
         });
     }
@@ -79,9 +86,13 @@ export const generateSampleData = async () => {
 };
 
 export const clearSampleData = async () => {
-    const { error } = await supabase.from("workout_logs").delete().neq("id", "");
-    if (error) console.error("❌ Error clearing sample data:", error);
-    else console.log("🧼 Sample data cleared.");
+    const { error } = await supabase.from("workout_logs").delete().neq("id", "00000000-0000-0000-0000-000000000000"); // dummy WHERE clause to allow delete
+
+    if (error) {
+        console.error("❌ Error clearing ALL logs:", error);
+    } else {
+        console.log("🧼 All workout logs cleared.");
+    }
 };
 
 // OPTIONAL DEV PANEL

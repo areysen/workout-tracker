@@ -4,6 +4,7 @@ import TodayView from "./TodayView";
 import CalendarView from "./CalendarView";
 import SummaryView from "./SummaryView";
 import PreviewView from "./PreviewView";
+import LogWorkoutView from "./LogWorkoutView";
 import { DevControls } from "./generateSampleData"; // 👈 Import the dev tools
 
 function App() {
@@ -15,6 +16,7 @@ function App() {
           <Route path="/calendar" element={<CalendarView />} />
           <Route path="/summary/:date" element={<SummaryView />} />
           <Route path="/preview/:date" element={<PreviewView />} />
+          <Route path="/log/:date" element={<LogWorkoutView />} />
         </Routes>
       </BrowserRouter>
       <DevControls /> {/* 👈 This displays the dev panel in bottom-right */}

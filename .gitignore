@@ -2,3 +2,5 @@ node_modules/
 .cache/
 .eslintcache
 .DS_Store
+.DS_Store
+repo-structure.txt

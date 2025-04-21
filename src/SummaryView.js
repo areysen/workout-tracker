@@ -1,11 +1,14 @@
 import React, { useEffect, useState } from "react";
-import { useParams, useNavigate } from "react-router-dom";
+import { useParams, useNavigate, useLocation } from "react-router-dom";
 import { supabase } from "./supabaseClient";
-import { parseISO, format } from "date-fns";
-import { getToday, formatDateForDisplay } from "./utils";
+import { getToday, formatDateWithOptions } from "./utils";
 
 export default function SummaryView() {
     const { date } = useParams();
+    const location = useLocation();
+    const today = getToday();
+    const formattedDate = formatDateWithOptions(date);
+    const isToday = date === today;
     const navigate = useNavigate();
     const [logEntry, setLogEntry] = useState(null);
 
@@ -32,7 +35,7 @@ export default function SummaryView() {
                         className="text-sm border border-white px-3 py-1 rounded hover:bg-white/10">
                         ← Back
                     </button>
-                    <h1 className="text-xl font-bold">Summary for {format(parseISO(date), "EEE, MMM d")}</h1>
+                    <h1 className="text-xl font-bold">Summary for {formatDateWithOptions(date)}</h1>
                 </div>
             </div>
 
@@ -41,19 +44,35 @@ export default function SummaryView() {
             ) : (
                 <div className="space-y-3">
                     <h2 className="text-lg font-semibold text-[#C63663]">
-                        {logEntry.day} — {logEntry.muscleGroup}
+                        {logEntry.day} — {logEntry.muscle_group}
                     </h2>
-                    <ul className="text-sm space-y-2">
-                        {logEntry.exercises.map((ex, i) => (
-                            <li key={i} className="bg-[#343E44] p-3 rounded">
-                                <p className="font-semibold text-white">{ex.name}</p>
-                                <p className="text-gray-300 text-xs">
-                                    {ex.sets} sets × {ex.reps} reps @ {ex.weight || "—"} lbs (RPE {ex.rpe || "—"})
-                                </p>
-                                {ex.notes && <p className="text-xs text-gray-400 mt-1">Note: {ex.notes}</p>}
-                            </li>
-                        ))}
-                    </ul>
+                    {["warmup", "main", "cooldown"].map((section) => (
+                        logEntry.exercises[section]?.length > 0 && (
+                            <div key={section}>
+                                <h2 className="text-lg font-semibold text-white capitalize mb-2">{section}</h2>
+                                <ul className="text-sm space-y-2">
+                                    {logEntry.exercises[section].map((ex, i) => (
+                                        <li key={`${section}-${i}`} className="bg-[#343E44] p-3 rounded">
+                                            <p className="font-semibold text-white">{ex.name}</p>
+                                            <p className="text-gray-300 text-xs">
+                                                {ex.sets && ex.reps ? `${ex.sets} sets × ${ex.reps} reps` : ex.duration || ""}
+                                                {ex.weight ? ` @ ${ex.weight} lbs` : ""}
+                                                {ex.rpe ? ` (RPE ${ex.rpe})` : ""}
+                                            </p>
+                                            {ex.notes && <p className="text-xs text-gray-400 mt-1">Note: {ex.notes}</p>}
+                                        </li>
+                                    ))}
+                                </ul>
+                            </div>
+                        )
+                    ))}
+                    {location.state?.allowLogAnother && (
+                        <button
+                            onClick={() => navigate('/today', { state: { startNewWorkout: true } })}
+                            className="bg-[#C63663] text-white px-6 py-3 rounded-xl shadow hover:brightness-110 transition w-full text-center">
+                            Start Another Workout
+                        </button>
+                    )}
                 </div>
             )}
         </div>

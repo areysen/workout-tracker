@@ -1,8 +1,7 @@
 import { useEffect, useState } from "react";
-import { format } from "date-fns";
 import { useNavigate } from "react-router-dom";
 import { fetchWorkoutLogs } from "./supabaseClient";
-import { getToday, formatDateForDisplay } from "./utils";
+import { getToday, formatDateWithOptions } from "./utils";
 
 export default function TodayView() {
     const [todayLog, setTodayLog] = useState(null);
@@ -11,7 +10,7 @@ export default function TodayView() {
     const navigate = useNavigate();
 
     const today = getToday();
-    const formattedDate = format(new Date(), "EEEE, MMM d"); // Sunday, Apr 20
+    const formattedDate = formatDateWithOptions(today, { weekday: "long" });
 
     useEffect(() => {
         async function load() {

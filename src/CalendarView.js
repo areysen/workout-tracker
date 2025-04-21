@@ -1,7 +1,6 @@
 import React, { useMemo, useEffect, useRef, useState } from "react";
 import {
     eachDayOfInterval,
-    format,
     startOfYear,
     endOfYear,
     isToday,
@@ -20,7 +19,7 @@ import {
 import { useNavigate, useLocation } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { supabase } from "./supabaseClient";
-import { getToday, formatDateForDisplay } from "./utils";
+import { getToday, formatDateWithOptions, formatDateForDisplay } from "./utils";
 
 export default function CalendarView() {
     const navigate = useNavigate();
@@ -49,7 +48,7 @@ export default function CalendarView() {
 
     const groupedByMonth = useMemo(() => {
         return allDays.reduce((acc, date) => {
-            const month = format(date, "MMMM");
+            const month = formatDateWithOptions(date, { weekday: undefined }).split(" ")[0];
             if (!acc[month]) acc[month] = [];
             acc[month].push(date);
             return acc;
@@ -78,8 +77,8 @@ export default function CalendarView() {
     }, [fromToday]);
 
     useEffect(() => {
-        if (viewMode === "year" && monthRefs.current[format(selectedDate, "MMMM")]) {
-            monthRefs.current[format(selectedDate, "MMMM")].scrollIntoView({ behavior: "smooth" });
+        if (viewMode === "year" && monthRefs.current[formatDateWithOptions(selectedDate, { weekday: undefined }).split(" ")[0]]) {
+            monthRefs.current[formatDateWithOptions(selectedDate, { weekday: undefined }).split(" ")[0]].scrollIntoView({ behavior: "smooth" });
         }
     }, [viewMode, selectedDate]);
     useEffect(() => {
@@ -102,9 +101,12 @@ export default function CalendarView() {
     }, [viewMode]);
 
     const handleClick = (date) => {
-        const formatted = format(date, "yyyy-MM-dd");
+        const formatted = formatDateForDisplay(date);
         setSelectedDate(date);
-        if (isToday(date)) {
+        const log = workoutLogs.find((l) => l.date === formatted);
+        if (log && isToday(date)) {
+            navigate("/summary/" + formatted, { state: { allowLogAnother: true } });
+        } else if (isToday(date)) {
             navigate("/today");
         } else if (isBefore(date, today)) {
             navigate("/summary/" + formatted);
@@ -154,8 +156,8 @@ export default function CalendarView() {
                         </button>
                         <h2 className="text-lg font-semibold text-[#C63663]">
                             {viewMode === "week"
-                                ? `Week of ${format(currentWeekStart, "MMM d")}`
-                                : format(currentMonth, "MMMM yyyy")}
+                                ? `Week of ${formatDateWithOptions(currentWeekStart)}`
+                                : currentMonth.toLocaleDateString("en-US", { month: "long", year: "numeric" })}
                         </h2>
                         <button
                             onClick={handleNext}
@@ -196,7 +198,7 @@ export default function CalendarView() {
 
     const renderGridDays = (dates) => (
         <motion.div
-            key={`${viewMode}-${format(selectedDate, "yyyy-MM-dd")}`}
+            key={`${viewMode}-${formatDateWithOptions(selectedDate)}`}
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -10 }}
@@ -204,8 +206,8 @@ export default function CalendarView() {
             className="grid grid-cols-7 gap-3">
             {dates.map((date) => {
                 const isTodayDate = isToday(date);
-                const dayOfWeek = format(date, "EEE");
-                const dayNumber = format(date, "d");
+                const dayOfWeek = formatDateWithOptions(date, { weekday: "short" }).split(",")[0];
+                const dayNumber = new Date(date).getDate();
 
                 return (
                     <button
@@ -221,7 +223,7 @@ export default function CalendarView() {
                         <div className="text-lg font-bold text-white">{dayNumber}</div>
                         <div className="text-xs mt-1 text-gray-300">
                             {(() => {
-                                const log = workoutLogs.find((l) => l.date === format(date, "yyyy-MM-dd"));
+                                const log = workoutLogs.find((l) => l.date === formatDateForDisplay(date));
                                 if (log?.forecast) return "Planned";
                                 if (log) return "✓ Logged";
                                 return "";
@@ -236,7 +238,7 @@ export default function CalendarView() {
     const renderStackedDays = (dates) => (
         <AnimatePresence mode="wait">
             <motion.div
-                key={`week-${format(selectedDate, "yyyy-MM-dd")}`}
+                key={`week-${formatDateWithOptions(selectedDate)}`}
                 layout
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
@@ -249,7 +251,8 @@ export default function CalendarView() {
                 }}>
                 {dates.map((date) => {
                     const isTodayDate = isToday(date);
-                    const dayOfWeek = format(date, "EEEE");
+                    const dayOfWeek = formatDateWithOptions(date, { weekday: "long" }).split(",")[0];
+                    const monthDay = formatDateWithOptions(date).split(", ")[1];
                     return (
                         <button
                             key={date.toISOString()}
@@ -260,11 +263,11 @@ export default function CalendarView() {
                             <div className="flex justify-between items-center">
                                 <div>
                                     <div className="font-semibold text-sm uppercase">
-                                        {dayOfWeek}, {format(date, "MMM d")}
+                                        {dayOfWeek}, {monthDay}
                                     </div>
                                     <div className="text-xs text-gray-200">
                                         {(() => {
-                                            const log = workoutLogs.find((l) => l.date === format(date, "yyyy-MM-dd"));
+                                            const log = workoutLogs.find((l) => l.date === formatDateForDisplay(date));
                                             if (log?.forecast) return "Planned workout";
                                             if (log) return "Completed workout";
                                             return "No workout logged";

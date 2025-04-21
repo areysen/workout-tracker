@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { useSearchParams, useNavigate, useParams } from "react-router-dom";
 import { supabase } from "./supabaseClient";
-import { getToday, formatFullDate, formatDate } from "./utils";
+import { getToday, formatDateWithOptions } from "./utils";
 
 export default function LogWorkoutView() {
     const [searchParams] = useSearchParams();
@@ -74,7 +74,7 @@ export default function LogWorkoutView() {
                         className="text-sm border border-white px-3 py-1 rounded hover:bg-white/10">
                         ← Back
                     </button>
-                    <h1 className="text-xl font-bold">Log Workout for {formatFullDate(selectedDate)}</h1>
+                    <h1 className="text-xl font-bold">Log Workout for {formatDateWithOptions(selectedDate)}</h1>
                 </div>
             </div>
 

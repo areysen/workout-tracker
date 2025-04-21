@@ -17,12 +17,26 @@ export function getWeekday(dateStr) {
     return new Date(dateStr).toLocaleDateString("en-US", { weekday: "long" });
 }
 
-export function formatFullDate(dateStr) {
-    const date = new Date(dateStr);
+export function formatDateForDisplay(date) {
+    return new Date(date).toISOString().split("T")[0];
+}
+
+export function formatDateWithOptions(dateInput, { weekday = "short", includeYear = false } = {}) {
+    let date;
+
+    if (typeof dateInput === "string") {
+        // If it's already a local-format date (e.g. "2025-04-21"), just pass it through to a normal new Date
+        date = new Date(dateInput + "T00:00:00"); // safely create it in local time
+    } else if (dateInput instanceof Date) {
+        date = dateInput;
+    } else {
+        throw new Error("Invalid date input passed to formatDateWithOptions");
+    }
+
     return date.toLocaleDateString("en-US", {
-        weekday: "long",
-        year: "numeric",
+        weekday,
         month: "short",
-        day: "numeric"
+        day: "numeric",
+        ...(includeYear && { year: "numeric" })
     });
 }

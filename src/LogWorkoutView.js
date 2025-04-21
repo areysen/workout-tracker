@@ -1,35 +1,39 @@
-import { useParams, useNavigate } from "react-router-dom";
-import { useEffect, useState } from "react";
+import React, { useEffect, useState } from "react";
+import { useSearchParams, useNavigate, useParams } from "react-router-dom";
 import { supabase } from "./supabaseClient";
-import { format, parseISO } from "date-fns";
+import { getToday, formatFullDate, formatDate } from "./utils";
 
 export default function LogWorkoutView() {
-    const { date } = useParams();
+    const [searchParams] = useSearchParams();
+    const { date: selectedDate } = useParams();
     const navigate = useNavigate();
-    const [workout, setWorkout] = useState(null);
+    const [log, setLog] = useState(null);
+    const [loading, setLoading] = useState(true);
     const [formData, setFormData] = useState([]);
 
     useEffect(() => {
-        const fetchWorkout = async () => {
-            const { data, error } = await supabase.from("workout_logs").select("*").eq("date", date).single();
+        async function fetchWorkout() {
+            const { data, error } = await supabase.from("workout_logs").select("*").eq("date", selectedDate).single();
 
-            if (error) console.error("❌ Error loading workout:", error);
-            else {
-                setWorkout(data);
+            if (error) {
+                console.error("Error fetching workout:", error);
+            } else {
+                setLog(data);
                 setFormData(
                     data.exercises.map((exercise) => ({
-                        ...exercise,
-                        actualSets: "",
-                        actualReps: "",
-                        actualWeight: "",
-                        actualRPE: ""
+                        name: exercise.name,
+                        sets: "",
+                        reps: "",
+                        weight: "",
+                        rpe: "",
+                        note: ""
                     }))
                 );
             }
-        };
-
+            setLoading(false);
+        }
         fetchWorkout();
-    }, [date]);
+    }, [selectedDate]);
 
     const handleChange = (index, field, value) => {
         const updated = [...formData];
@@ -38,77 +42,94 @@ export default function LogWorkoutView() {
     };
 
     const handleSubmit = async () => {
+        const updatedExercises = formData.map((exercise) => ({
+            ...exercise,
+            sets: Number(exercise.sets),
+            reps: Number(exercise.reps),
+            weight: Number(exercise.weight),
+            rpe: Number(exercise.rpe)
+        }));
+
         const { error } = await supabase
             .from("workout_logs")
-            .update({
-                hasLoggedWorkout: true,
-                actualExercises: formData
-            })
-            .eq("date", date);
+            .update({ exercises: updatedExercises, forecast: false })
+            .eq("date", selectedDate);
 
         if (error) {
-            console.error("❌ Error saving log:", error);
+            console.error("Error updating workout:", error);
         } else {
-            console.log("✅ Workout logged!");
-            navigate(`/summary/${date}`);
+            navigate(`/summary?date=${selectedDate}`);
         }
     };
 
-    if (!workout) return <div className="p-4 text-white">Loading workout...</div>;
+    if (loading) return <div className="text-white p-4">Loading...</div>;
+    if (!log) return <div className="text-white p-4">No workout found for this date.</div>;
 
     return (
         <div className="min-h-screen bg-[#242B2F] text-white p-4 max-w-3xl mx-auto">
-            <div className="flex justify-between items-center mb-4">
-                <button
-                    onClick={() => navigate(-1)}
-                    className="text-sm border border-white px-3 py-1 rounded hover:bg-white/10">
-                    ← Back
-                </button>
-                <h1 className="text-xl font-bold">Log Workout for {format(parseISO(date), "EEE, MMM d")}</h1>
+            <div className="sticky top-0 z-10 bg-[#242B2F] pt-4 pb-2">
+                <div className="flex justify-between items-center mb-4">
+                    <button
+                        onClick={() => navigate(-1)}
+                        className="text-sm border border-white px-3 py-1 rounded hover:bg-white/10">
+                        ← Back
+                    </button>
+                    <h1 className="text-xl font-bold">Log Workout for {formatFullDate(selectedDate)}</h1>
+                </div>
             </div>
 
-            <div className="space-y-6">
+            <h2 className="text-lg font-semibold text-[#C63663] mt-4">
+                {log.day} — {log.muscleGroup}
+            </h2>
+
+            <form className="space-y-6 mt-4">
                 {formData.map((exercise, index) => (
-                    <div key={index} className="bg-[#343E44] p-4 rounded-lg shadow">
-                        <p className="font-semibold mb-2">{exercise.name}</p>
-                        <div className="grid grid-cols-2 gap-3 text-sm">
+                    <div key={index} className="bg-[#343E44] p-4 rounded space-y-2">
+                        <p className="font-semibold text-white">{exercise.name}</p>
+                        <div className="flex gap-2 text-sm">
                             <input
                                 type="number"
                                 placeholder="Sets"
-                                value={exercise.actualSets}
-                                onChange={(e) => handleChange(index, "actualSets", e.target.value)}
-                                className="bg-transparent border border-gray-500 p-2 rounded"
+                                className="w-1/5 p-1 rounded bg-transparent border border-[#818C91] text-white"
+                                value={exercise.sets}
+                                onChange={(e) => handleChange(index, "sets", e.target.value)}
                             />
                             <input
                                 type="number"
                                 placeholder="Reps"
-                                value={exercise.actualReps}
-                                onChange={(e) => handleChange(index, "actualReps", e.target.value)}
-                                className="bg-transparent border border-gray-500 p-2 rounded"
+                                className="w-1/5 p-1 rounded bg-transparent border border-[#818C91] text-white"
+                                value={exercise.reps}
+                                onChange={(e) => handleChange(index, "reps", e.target.value)}
                             />
                             <input
                                 type="number"
                                 placeholder="Weight"
-                                value={exercise.actualWeight}
-                                onChange={(e) => handleChange(index, "actualWeight", e.target.value)}
-                                className="bg-transparent border border-gray-500 p-2 rounded"
+                                className="w-1/5 p-1 rounded bg-transparent border border-[#818C91] text-white"
+                                value={exercise.weight}
+                                onChange={(e) => handleChange(index, "weight", e.target.value)}
                             />
                             <input
                                 type="number"
                                 placeholder="RPE"
-                                value={exercise.actualRPE}
-                                onChange={(e) => handleChange(index, "actualRPE", e.target.value)}
-                                className="bg-transparent border border-gray-500 p-2 rounded"
+                                className="w-1/5 p-1 rounded bg-transparent border border-[#818C91] text-white"
+                                value={exercise.rpe}
+                                onChange={(e) => handleChange(index, "rpe", e.target.value)}
                             />
                         </div>
+                        <textarea
+                            placeholder="Notes"
+                            className="w-full p-1 rounded bg-transparent border border-[#818C91] text-white text-sm"
+                            value={exercise.note}
+                            onChange={(e) => handleChange(index, "note", e.target.value)}
+                        />
                     </div>
                 ))}
-            </div>
+            </form>
 
             <button
                 onClick={handleSubmit}
-                className="w-full bg-[#C63663] mt-6 py-3 text-white rounded-xl hover:brightness-110 transition">
-                Finish Workout
+                className="mt-6 w-full bg-[#C63663] text-white py-2 rounded text-sm font-semibold">
+                Save Workout
             </button>
         </div>
     );

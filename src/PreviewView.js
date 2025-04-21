@@ -2,6 +2,7 @@ import { useParams, Link, useNavigate } from "react-router-dom";
 import { useEffect, useState } from "react";
 import { supabase } from "./supabaseClient";
 import { format, parseISO } from "date-fns";
+import { getToday, formatDateForDisplay } from "./utils";
 
 function PreviewView() {
     const { date } = useParams();
@@ -38,13 +39,15 @@ function PreviewView() {
     const dayName = dateObj.toLocaleDateString("en-US", { weekday: "long" });
     return (
         <div className="min-h-screen bg-[#242B2F] text-white p-4 max-w-3xl mx-auto">
-            <div className="flex justify-between items-center mb-4">
-                <button
-                    onClick={() => navigate(-1)}
-                    className="text-sm border border-white px-3 py-1 rounded hover:bg-white/10">
-                    ← Back
-                </button>
-                <h1 className="text-xl font-bold">Preview for {format(parseISO(date), "EEE, MMM d")}</h1>
+            <div className="sticky top-0 z-10 bg-[#242B2F] pt-4 pb-2">
+                <div className="flex justify-between items-center mb-4">
+                    <button
+                        onClick={() => navigate(-1)}
+                        className="text-sm border border-white px-3 py-1 rounded hover:bg-white/10">
+                        ← Back
+                    </button>
+                    <h1 className="text-xl font-bold">Preview for {format(parseISO(date), "EEE, MMM d")}</h1>
+                </div>
             </div>
 
             <div className="space-y-3">

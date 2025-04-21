@@ -1,74 +1,73 @@
-import React, { useEffect, useState } from "react";
-import { supabase } from "./supabaseClient";
+import { useEffect, useState } from "react";
+import { format } from "date-fns";
 import { useNavigate } from "react-router-dom";
+import { fetchWorkoutLogs } from "./supabaseClient";
+import { getToday, formatDateForDisplay } from "./utils";
 
-const TodayView = () => {
-    const [log, setLog] = useState(null);
+export default function TodayView() {
+    const [todayLog, setTodayLog] = useState(null);
     const [loading, setLoading] = useState(true);
+    const [showChat, setShowChat] = useState(false);
     const navigate = useNavigate();
 
+    const today = getToday();
+    const formattedDate = format(new Date(), "EEEE, MMM d"); // Sunday, Apr 20
+
     useEffect(() => {
-        const fetchTodayLog = async () => {
+        async function load() {
             setLoading(true);
-            const today = new Date().toISOString().split("T")[0]; // 'YYYY-MM-DD'
-            const { data, error } = await supabase.from("workout_logs").select("*").eq("date", today).single();
-
-            if (error) {
-                console.warn("No workout log for today");
-            } else {
-                setLog(data);
-            }
-
+            const logs = await fetchWorkoutLogs();
+            const todayMatch = logs.find((log) => log.date === today);
+            setTodayLog(todayMatch || null);
             setLoading(false);
-        };
-
-        fetchTodayLog();
-    }, []);
-
-    const handleGoToLog = () => {
-        if (log?.forecast) {
-            navigate(`/preview/${log.date}`);
-        } else {
-            navigate(`/summary/${log.date}`);
         }
-    };
-
-    if (loading) {
-        return <div className="text-white p-4">Loading...</div>;
-    }
-
-    if (!log) {
-        return (
-            <div className="min-h-screen bg-[#242B2F] text-white p-4">
-                <h1 className="text-xl font-bold mb-4">Today</h1>
-                <p>No workout logged or scheduled for today.</p>
-            </div>
-        );
-    }
+        load();
+    }, [today]);
 
     return (
-        <div className="min-h-screen bg-[#242B2F] text-white p-4">
-            <h1 className="text-xl font-bold mb-4">Today</h1>
-            <div className="bg-[#343E44] p-4 rounded shadow text-sm space-y-2">
-                <p className="text-[#C63663] font-semibold">
-                    {log.day} — {log.muscleGroup}
+        <div className="p-4 max-w-3xl mx-auto text-white">
+            <h1 className="text-2xl font-bold mb-1">Welcome back, Andrew! 💪</h1>
+            <p className="text-sm text-gray-300 mb-4">Today is {formattedDate}</p>
+
+            {loading ? (
+                <p className="text-gray-400">Loading...</p>
+            ) : todayLog ? (
+                <div>
+                    <p className="mb-4 text-gray-300">
+                        You have a {todayLog.forecast ? "planned" : "completed"} workout for today!
+                    </p>
+                    <button
+                        className="w-full bg-[#C63663] text-white py-2 px-4 rounded font-semibold hover:bg-pink-600 transition"
+                        onClick={() => navigate(todayLog.forecast ? `/preview/${today}` : `/summary/${today}`)}>
+                        View {todayLog.forecast ? "Preview" : "Summary"}
+                    </button>
+                </div>
+            ) : (
+                <p className="text-gray-400 mb-4">
+                    No workout scheduled for today. Go to the calendar to add or adjust your plan.
                 </p>
-                <ul className="space-y-1">
-                    {log.exercises?.map((exercise, idx) => (
-                        <li key={idx} className="border-b border-gray-600 pb-1">
-                            <p className="text-white font-medium">{exercise.name}</p>
-                            <p className="text-gray-300 text-xs">
-                                {exercise.sets} sets × {exercise.reps} reps @ {exercise.weight} lbs (RPE {exercise.rpe})
-                            </p>
-                        </li>
-                    ))}
-                </ul>
-                <button onClick={handleGoToLog} className="mt-3 bg-[#C63663] text-white px-4 py-1 rounded text-xs">
-                    View {log.forecast ? "Planned" : "Completed"} Workout
-                </button>
+            )}
+
+            {/* Motivational Box */}
+            <div className="mt-6 p-4 bg-[#2E353A] rounded text-sm text-gray-300 border border-[#C63663]">
+                💪 Stay consistent, Andrew — today’s workout pushes you one step closer to your goal!
             </div>
+
+            {/* Toggle CoachBot */}
+            <button
+                className="mt-4 text-sm text-white bg-[#343E44] px-3 py-1 rounded"
+                onClick={() => setShowChat(!showChat)}>
+                {showChat ? "Hide CoachBot 🤖" : "Show CoachBot 💬"}
+            </button>
+
+            {showChat && (
+                <div className="mt-4 flex items-start space-x-2">
+                    <div className="bg-[#343E44] p-4 rounded text-sm text-gray-300 w-full">
+                        <span className="font-semibold text-[#C63663]">CoachBot:</span> Let’s crush it today! Here’s
+                        your game plan. 🧠🔥
+                    </div>
+                </div>
+            )}
         </div>
     );
-};
-
-export default TodayView;
+}

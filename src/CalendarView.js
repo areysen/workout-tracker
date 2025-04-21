@@ -20,6 +20,7 @@ import {
 import { useNavigate, useLocation } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { supabase } from "./supabaseClient";
+import { getToday, formatDateForDisplay } from "./utils";
 
 export default function CalendarView() {
     const navigate = useNavigate();
@@ -133,7 +134,7 @@ export default function CalendarView() {
     };
 
     const renderControls = () => (
-        <div className="sticky top-0 bg-[#242B2F] z-10 pb-2">
+        <div className="sticky top-0 z-10 bg-[#242B2F] pt-4 pb-2">
             <div className="flex justify-between items-start mb-4 flex-wrap gap-2 sm:flex-nowrap">
                 <div className="flex items-center gap-2">
                     <button

@@ -19,7 +19,7 @@ import {
 import { useNavigate, useLocation } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { supabase } from "./supabaseClient";
-import { getToday, formatDateWithOptions, formatDateForDisplay } from "./utils";
+import { getToday, formatDateWithOptions, formatDateForDisplay, getWeekday } from "./utils";
 
 export default function CalendarView() {
     const navigate = useNavigate();
@@ -32,6 +32,7 @@ export default function CalendarView() {
     const [viewMode, setViewMode] = useState("week");
     const [selectedDate, setSelectedDate] = useState(today);
     const [workoutLogs, setWorkoutLogs] = useState([]);
+    const [workoutTemplates, setWorkoutTemplates] = useState([]);
 
     const currentWeekStart = startOfWeek(selectedDate, { weekStartsOn: 1 });
     const currentMonth = new Date(getYear(selectedDate), getMonth(selectedDate));
@@ -84,15 +85,20 @@ export default function CalendarView() {
     useEffect(() => {
         async function fetchWorkoutLogs() {
             const { data, error } = await supabase.from("workout_logs").select("*");
-
             if (error) {
                 console.error("Error fetching logs:", error);
             } else {
                 setWorkoutLogs(data);
             }
         }
-
+        async function fetchWorkoutTemplates() {
+            const { data, error } = await supabase.from("workout_templates").select("day_of_week, workout_name");
+            if (!error) {
+                setWorkoutTemplates(data);
+            }
+        }
         fetchWorkoutLogs();
+        fetchWorkoutTemplates();
     }, []);
     useEffect(() => {
         if (viewMode === "month" && todayRef.current) {
@@ -107,7 +113,7 @@ export default function CalendarView() {
         if (log && isToday(date)) {
             navigate("/summary/" + formatted, { state: { allowLogAnother: true } });
         } else if (isToday(date)) {
-            navigate("/today");
+            navigate("/preview/" + formatted);
         } else if (isBefore(date, today)) {
             navigate("/summary/" + formatted);
         } else {
@@ -196,91 +202,130 @@ export default function CalendarView() {
         </div>
     );
 
-    const renderGridDays = (dates) => (
-        <motion.div
-            key={`${viewMode}-${formatDateWithOptions(selectedDate)}`}
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -10 }}
-            transition={{ duration: 0.3 }}
-            className="grid grid-cols-7 gap-3">
-            {dates.map((date) => {
-                const isTodayDate = isToday(date);
-                const dayOfWeek = formatDateWithOptions(date, { weekday: "short" }).split(",")[0];
-                const dayNumber = new Date(date).getDate();
-
-                return (
-                    <button
-                        key={date.toISOString()}
-                        ref={isTodayDate ? todayRef : null}
-                        onClick={() => handleClick(date)}
-                        className={`h-20 rounded-lg px-2 py-1 text-left flex flex-col justify-between
-              ${isTodayDate ? "bg-[#C63663] text-white" : "bg-[#343E44] text-gray-300"}
-              hover:ring-2 hover:ring-[#C63663]`}>
-                        <div className={`text-xs font-bold uppercase ${isTodayDate ? "text-white" : "text-[#C63663]"}`}>
-                            {dayOfWeek}
-                        </div>
-                        <div className="text-lg font-bold text-white">{dayNumber}</div>
-                        <div className="text-xs mt-1 text-gray-300">
-                            {(() => {
-                                const log = workoutLogs.find((l) => l.date === formatDateForDisplay(date));
-                                if (log?.forecast) return "Planned";
-                                if (log) return "✓ Logged";
-                                return "";
-                            })()}
-                        </div>
-                    </button>
-                );
-            })}
-        </motion.div>
-    );
-
-    const renderStackedDays = (dates) => (
-        <AnimatePresence mode="wait">
+    const renderGridDays = (dates) => {
+        // Reset forecast cache at the start of this render
+        window._splitForecastCache = null;
+        return (
             <motion.div
-                key={`week-${formatDateWithOptions(selectedDate)}`}
-                layout
+                key={`${viewMode}-${formatDateWithOptions(selectedDate)}`}
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: -10 }}
-                transition={{ duration: 0.25 }}
-                className="space-y-3 relative"
-                style={{
-                    minHeight: "420px", // give consistent height to reduce layout shift
-                    overflowAnchor: "none"
-                }}>
+                transition={{ duration: 0.3 }}
+                className="grid grid-cols-7 gap-3">
                 {dates.map((date) => {
                     const isTodayDate = isToday(date);
-                    const dayOfWeek = formatDateWithOptions(date, { weekday: "long" }).split(",")[0];
-                    const monthDay = formatDateWithOptions(date).split(", ")[1];
+                    const dayOfWeek = formatDateWithOptions(date, { weekday: "short" }).split(",")[0];
+                    const dayNumber = new Date(date).getDate();
+
+                    // --- Forecast logic block start ---
+                    const formatted = formatDateForDisplay(date);
+                    const log = workoutLogs.find((l) => l.date === formatted);
+                    let forecastLabel = "No workout logged";
+
+                    if (log?.forecast) {
+                        forecastLabel = `Planned: ${log.muscle_group || log.workout_name}`;
+                    } else if (log) {
+                        forecastLabel = "✓ Logged";
+                    } else if (!log) {
+                        const weekday = getWeekday(date).toLowerCase();
+                        const templateForDay = workoutTemplates.find((t) => t.day_of_week === weekday);
+                        if (templateForDay) {
+                            forecastLabel = `Planned: ${templateForDay.workout_name}`;
+                        } else {
+                            forecastLabel = "No planned workout";
+                        }
+                    }
+                    // --- Forecast logic block end ---
+
                     return (
                         <button
                             key={date.toISOString()}
+                            ref={isTodayDate ? todayRef : null}
                             onClick={() => handleClick(date)}
-                            className={`w-full text-left p-4 rounded-lg shadow-md
-                ${isTodayDate ? "bg-[#C63663] text-white" : "bg-[#343E44] text-gray-300"}
-                hover:ring-2 hover:ring-[#C63663]`}>
-                            <div className="flex justify-between items-center">
-                                <div>
-                                    <div className="font-semibold text-sm uppercase">
-                                        {dayOfWeek}, {monthDay}
-                                    </div>
-                                    <div className="text-xs text-gray-200">
-                                        {(() => {
-                                            const log = workoutLogs.find((l) => l.date === formatDateForDisplay(date));
-                                            if (log?.forecast) return "Planned workout";
-                                            if (log) return "Completed workout";
-                                            return "No workout logged";
-                                        })()}
-                                    </div>
-                                </div>
+                            className={`h-20 rounded-lg px-2 py-1 text-left flex flex-col justify-between
+                  ${isTodayDate ? "bg-[#C63663] text-white" : "bg-[#343E44] text-gray-300"}
+                  hover:ring-2 hover:ring-[#C63663]`}>
+                            <div className={`text-xs font-bold uppercase ${isTodayDate ? "text-white" : "text-[#C63663]"}`}>
+                                {dayOfWeek}
+                            </div>
+                            <div className="text-lg font-bold text-white">{dayNumber}</div>
+                            <div className="text-xs mt-1 text-gray-300">
+                                {forecastLabel}
                             </div>
                         </button>
                     );
                 })}
             </motion.div>
-        </AnimatePresence>
-    );
+        );
+    };
+
+    const renderStackedDays = (dates) => {
+        // Reset forecast cache at the start of this render
+        window._splitForecastCache = null;
+        return (
+            <AnimatePresence mode="wait">
+                <motion.div
+                    key={`week-${formatDateWithOptions(selectedDate)}`}
+                    layout
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -10 }}
+                    transition={{ duration: 0.25 }}
+                    className="space-y-3 relative"
+                    style={{
+                        minHeight: "420px", // give consistent height to reduce layout shift
+                        overflowAnchor: "none"
+                    }}>
+                    {dates.map((date) => {
+                        const isTodayDate = isToday(date);
+                        const dayOfWeek = formatDateWithOptions(date, { weekday: "long" }).split(",")[0];
+                        const monthDay = formatDateWithOptions(date).split(", ")[1];
+
+                        // --- Forecast logic block start ---
+                        const formatted = formatDateForDisplay(date);
+                        const log = workoutLogs.find((l) => l.date === formatted);
+                        let forecastLabel = "No workout logged";
+
+                        if (log?.forecast) {
+                            forecastLabel = `Planned: ${log.muscle_group || log.workout_name}`;
+                        } else if (log) {
+                            forecastLabel = "✓ Logged";
+                        } else if (!log) {
+                            const weekday = getWeekday(date).toLowerCase();
+                            const templateForDay = workoutTemplates.find((t) => t.day_of_week === weekday);
+                            if (templateForDay) {
+                                forecastLabel = `Planned: ${templateForDay.workout_name}`;
+                            } else {
+                                forecastLabel = "No planned workout";
+                            }
+                        }
+                        // --- Forecast logic block end ---
+
+                        return (
+                            <button
+                                key={date.toISOString()}
+                                onClick={() => handleClick(date)}
+                                className={`w-full text-left p-4 rounded-lg shadow-md
+                    ${isTodayDate ? "bg-[#C63663] text-white" : "bg-[#343E44] text-gray-300"}
+                    hover:ring-2 hover:ring-[#C63663]`}>
+                                <div className="flex justify-between items-center">
+                                    <div>
+                                        <div className="font-semibold text-sm uppercase">
+                                            {dayOfWeek}, {monthDay}
+                                        </div>
+                                        <div className="text-xs text-gray-200">
+                                            {forecastLabel}
+                                        </div>
+                                    </div>
+                                </div>
+                            </button>
+                        );
+                    })}
+                </motion.div>
+            </AnimatePresence>
+        );
+    };
 
     return (
         <div className="min-h-screen bg-[#242B2F] text-white p-4 max-w-3xl mx-auto">

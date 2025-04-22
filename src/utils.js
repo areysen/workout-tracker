@@ -14,7 +14,8 @@ export function formatDate(dateStr) {
 }
 
 export function getWeekday(dateStr) {
-    return new Date(dateStr).toLocaleDateString("en-US", { weekday: "long" });
+    const localDate = new Date(dateStr + "T00:00:00");
+    return localDate.toLocaleDateString("en-US", { weekday: "long" });
 }
 
 export function formatDateForDisplay(date) {

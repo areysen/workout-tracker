@@ -5,7 +5,7 @@ import CalendarView from "./CalendarView";
 import SummaryView from "./SummaryView";
 import PreviewView from "./PreviewView";
 import LogWorkoutView from "./LogWorkoutView";
-import { DevControls } from "./generateSampleData"; // 👈 Import the dev tools
+
 
 function App() {
   return (
@@ -19,7 +19,6 @@ function App() {
           <Route path="/log/:date" element={<LogWorkoutView />} />
         </Routes>
       </BrowserRouter>
-      <DevControls /> {/* 👈 This displays the dev panel in bottom-right */}
     </>
   );
 }

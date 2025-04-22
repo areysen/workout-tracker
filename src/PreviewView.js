@@ -21,30 +21,56 @@ function PreviewView() {
                 console.error("Error fetching log:", error);
             }
 
-            if (data && typeof data.exercises === "string") {
-                try {
-                    data.exercises = JSON.parse(data.exercises);
-                } catch (error) {
-                    console.error("❌ Failed to parse exercises", error);
-                    data.exercises = [];
-                }
-            }
-
             if (data) {
+                if (typeof data.exercises === "string") {
+                    try {
+                        data.exercises = JSON.parse(data.exercises);
+                    } catch (error) {
+                        console.error("❌ Failed to parse exercises", error);
+                        data.exercises = { warmup: [], main: [], cooldown: [] };
+                    }
+                }
+                if (!data.exercises?.main) {
+                    data.exercises = {
+                        warmup: [],
+                        main: Array.isArray(data.exercises) ? data.exercises : [],
+                        cooldown: []
+                    };
+                }
+
                 setLogForDate(data);
             } else {
                 // Forecast fallback
                 const weekday = getWeekday(date).toLowerCase();
-                const { data: template, error: templateError } = await supabase
+                const { data: templates, error: templateError } = await supabase
                     .from("workout_templates")
                     .select("*")
-                    .eq("day_of_week", weekday)
-                    .maybeSingle();
+                    .eq("day_of_week", weekday);
 
-                if (template) {
+                if (templates && templates.length > 0) {
+                    const template = templates[0];
+                    let exercises = template.exercises;
+
+                    // Parse if stored as JSON string
+                    if (typeof exercises === "string") {
+                        try {
+                            exercises = JSON.parse(exercises);
+                        } catch (e) {
+                            console.error("❌ Failed to parse template exercises", e);
+                            exercises = {};
+                        }
+                    }
+
+                    const sections = ["warmup", "main", "cooldown"];
+                    const structured = {
+                        warmup: exercises?.warmup || [],
+                        main: exercises?.main || [],
+                        cooldown: exercises?.cooldown || [],
+                    };
+
                     setLogForDate({
                         date,
-                        exercises: template.exercises,
+                        exercises: structured,
                         muscle_group: template.workout_name,
                         hasLoggedWorkout: false,
                     });
@@ -80,7 +106,7 @@ function PreviewView() {
             <div className="space-y-3">
                 {logForDate && (
                   <h2 className="text-lg font-semibold text-[#C63663]">
-                    {dayName}{logForDate.muscle_group ? ` — ${logForDate.muscle_group}` : ""}
+                    {getWeekday(date)}{logForDate.muscle_group ? ` — ${logForDate.muscle_group}` : ""}
                   </h2>
                 )}
 
@@ -94,7 +120,8 @@ function PreviewView() {
                                     <li key={`${section}-${i}`} className="bg-[#343E44] p-3 rounded">
                                         <p className="font-semibold text-white">{ex.name}</p>
                                         <p className="text-gray-300 text-xs">
-                                            {ex.sets && ex.reps ? `${ex.sets} sets × ${ex.reps} reps` : ex.duration || ""}
+                                            {ex.sets && ex.reps ? `${ex.sets} sets × ${ex.reps} reps` : ""}
+                                            {ex.duration ? `${ex.sets && ex.reps ? " – " : ""}${ex.duration}` : ""}
                                             {ex.weight ? ` @ ${ex.weight} lbs` : ""}
                                             {ex.rpe ? ` (RPE ${ex.rpe})` : ""}
                                         </p>

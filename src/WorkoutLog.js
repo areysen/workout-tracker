@@ -402,15 +402,9 @@ export default function WorkoutLog() {
     }
   ];
 
-  const [log, setLog] = useState(() => {
-    const saved = localStorage.getItem("workoutLog");
-    return saved ? JSON.parse(saved) : defaultLog;
-  });
+  const [log, setLog] = useState([]);
 
-  const [history, setHistory] = useState(() => {
-    const saved = localStorage.getItem("workoutHistory");
-    return saved ? JSON.parse(saved) : [];
-  });
+  const [history, setHistory] = useState([]);
 
   const [searchTerm, setSearchTerm] = useState("");
   const filteredHistory = history.filter((entry) => {
@@ -430,13 +424,30 @@ export default function WorkoutLog() {
   const [activeTab, setActiveTab] = useState(todayIndex >= 0 && todayIndex <= 4 ? todayIndex : 0);
   const tabRefs = useRef([]);
 
-  useEffect(() => {
-    localStorage.setItem("workoutLog", JSON.stringify(log));
-  }, [log]);
+  const fetchWorkoutLogs = async () => {
+    const { data, error } = await supabase.from("workout_logs").select("*").order("date", { ascending: true });
+
+    if (error) {
+      console.error("❌ Error loading logs:", error.message, error.details);
+      return;
+    }
+
+    const todayDate = new Date().toISOString().split("T")[0];
+    const todayEntries = data.filter((entry) => entry.date === todayDate);
+    const pastLogs = data.filter((entry) => entry.date !== todayDate);
+
+    const mergedLog = defaultLog.map((defaultDay) => {
+      const match = todayEntries.find((entry) => entry.day === defaultDay.day);
+      return match ? { ...defaultDay, ...match } : defaultDay;
+    });
+
+    setLog(mergedLog);
+    setHistory(pastLogs);
+  };
 
   useEffect(() => {
-    localStorage.setItem("workoutHistory", JSON.stringify(history));
-  }, [history]);
+    fetchWorkoutLogs();
+  }, []);
 
   useEffect(() => {
     if (tabRefs.current[activeTab]) {
@@ -450,6 +461,18 @@ export default function WorkoutLog() {
     setLog(updatedLog);
   };
 
+  const deleteWorkout = async (id) => {
+    const { error } = await supabase.from("workout_logs").delete().eq("id", id);
+
+    if (error) {
+      console.error("❌ Failed to delete workout:", error.message);
+      alert("Failed to delete workout.");
+    } else {
+      alert("✅ Workout deleted.");
+      fetchWorkoutLogs(); // refresh history
+    }
+  };
+
   const toggleWarmup = (dayIndex, warmup) => {
     const key = `${dayIndex}-${warmup}`;
     setCompletedWarmups((prev) => ({ ...prev, [key]: !prev[key] }));
@@ -461,49 +484,54 @@ export default function WorkoutLog() {
     setLog(updatedLog);
   };
 
-  const finishDay = async (dayIndex) => {
-    const updatedLog = [...log];
-    const today = new Date().toLocaleDateString();
-    const finished = {
-      date: today,
-      day: log[dayIndex].day,
-      muscleGroup: log[dayIndex].muscleGroup,
-      exercises: log[dayIndex].exercises.map((ex) => ({
-        name: ex.name,
-        weight: ex.weight,
-        reps: ex.reps,
-        sets: ex.sets,
-        rpe: ex.rpe,
-        notes: ex.notes
-      }))
-    };
+  const saveWorkoutToSupabase = async (logEntry) => {
+    const { data: existing, error: fetchError } = await supabase
+      .from("workout_logs")
+      .select("id")
+      .eq("date", logEntry.date)
+      .eq("day", logEntry.day);
 
-    // ✅ Save to local history
-    setHistory((prev) => [...prev, finished]);
-
-    // ✅ Save to Supabase
-    const { error } = await supabase.from("workout_logs").insert({
-      log_date: new Date().toISOString(),
-      log_data: finished
-    });
-
-    if (error) {
-      console.error("❌ Supabase upload failed:", error.message);
-      alert("Failed to sync with Supabase.");
-    } else {
-      console.log("✅ Workout saved to Supabase.");
+    if (fetchError) {
+      console.error("❌ Error checking existing log:", fetchError.message);
+      return;
     }
 
-    // ✅ Clear the log for the day
-    updatedLog[dayIndex].exercises.forEach((ex) => {
-      if (ex.weight) ex.prevWeight = ex.weight;
-      ex.weight = "";
-      ex.rpe = "";
-      ex.rest = "";
-      ex.notes = "";
-      ex.done = false;
-    });
-    setLog(updatedLog);
+    if (existing.length > 0) {
+      alert("⚠️ You’ve already logged this day’s workout.");
+      return;
+    }
+
+    const { data, error } = await supabase.from("workout_logs").insert([logEntry]).select(); // returns the inserted row including the UUID
+
+    if (error) {
+      alert("❌ Failed to save workout");
+      console.error(error);
+    } else {
+      alert("✅ Workout saved to Supabase");
+
+      // Optional: Add it to history immediately with UUID
+      setHistory((prev) => [...prev, data[0]]);
+    }
+  };
+
+  const finishDay = (dayIndex) => {
+    const actualDay = new Date().toLocaleString("en-US", { weekday: "long" });
+    const selectedDay = log[dayIndex].day;
+
+    if (selectedDay !== actualDay) {
+      alert(`⚠️ Today is ${actualDay}. You’re viewing ${selectedDay}.`);
+      return;
+    }
+
+    const completedLog = log[dayIndex];
+    completedLog.date = new Date().toISOString().split("T")[0];
+    saveWorkoutToSupabase(completedLog);
+
+    const resetLog = defaultLog.map((day) => ({
+      ...day,
+      date: completedLog.date
+    }));
+    setLog(resetLog);
   };
 
   const exportLog = () => {
@@ -577,9 +605,18 @@ export default function WorkoutLog() {
             ) : (
               filteredHistory.map((entry, i) => (
                 <div key={i} className="mb-4">
-                  <h3 className="font-semibold text-[#C63663]">
-                    {entry.date} – {entry.day} ({entry.muscleGroup})
-                  </h3>
+                  <div className="flex justify-between items-center">
+                    <h3 className="font-semibold text-[#C63663]">
+                      {entry.date} – {entry.day} ({entry.muscleGroup})
+                    </h3>
+                    {entry.id && (
+                      <button
+                        onClick={() => deleteWorkout(entry.id)}
+                        className="text-sm text-red-400 underline hover:text-red-300">
+                        Delete
+                      </button>
+                    )}
+                  </div>
                   <ul className="text-sm ml-4 mt-1 list-disc text-gray-300">
                     {entry.exercises.map((ex, j) => (
                       <li key={j}>

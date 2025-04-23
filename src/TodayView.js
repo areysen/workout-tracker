@@ -36,16 +36,24 @@ export default function TodayView() {
             You have a {todayLog.forecast ? "planned" : "completed"} workout for
             today!
           </p>
-          <button
-            className="w-full bg-[#C63663] text-white py-2 px-4 rounded font-semibold hover:bg-pink-600 transition"
-            onClick={() =>
-              navigate(
-                todayLog.forecast ? `/preview/${today}` : `/summary/${today}`
-              )
-            }
-          >
-            View {todayLog.forecast ? "Preview" : "Summary"}
-          </button>
+          <div className="flex gap-2">
+            <button
+              className="flex-1 bg-[#C63663] text-white py-2 px-4 rounded font-semibold hover:bg-pink-600 transition"
+              onClick={() =>
+                navigate(
+                  todayLog.forecast ? `/preview/${today}` : `/summary/${today}`
+                )
+              }
+            >
+              View {todayLog.forecast ? "Preview" : "Summary"}
+            </button>
+            <button
+              className="flex-1 bg-[#343E44] text-white py-2 px-4 rounded font-semibold hover:bg-gray-700 transition"
+              onClick={() => navigate("/calendar")}
+            >
+              View Calendar
+            </button>
+          </div>
         </div>
       ) : (
         <>

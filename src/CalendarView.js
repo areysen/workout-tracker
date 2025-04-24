@@ -32,7 +32,6 @@ export default function CalendarView() {
   const todayRef = useRef(null);
   const monthRefs = useRef({});
   const location = useLocation();
-  const fromToday = location.state?.fromToday;
 
   const [viewMode, setViewMode] = useState("week");
   const [selectedDate, setSelectedDate] = useState(today);
@@ -54,9 +53,10 @@ export default function CalendarView() {
 
   const groupedByMonth = useMemo(() => {
     return allDays.reduce((acc, date) => {
-      const month = formatDateWithOptions(date, { weekday: undefined }).split(
-        " "
-      )[0];
+      const month = date.toLocaleDateString("en-US", {
+        month: "long",
+        year: "numeric",
+      });
       if (!acc[month]) acc[month] = [];
       acc[month].push(date);
       return acc;
@@ -78,28 +78,41 @@ export default function CalendarView() {
   }, [selectedDate]);
 
   useEffect(() => {
-    if (fromToday) {
-      setViewMode("week");
-      setSelectedDate(today);
+    if (
+      location.state?.previousViewMode &&
+      location.state.previousViewMode !== "persist"
+    ) {
+      setViewMode(location.state.previousViewMode);
     }
-  }, [fromToday]);
+    if (location.state?.previousSelectedDate) {
+      setSelectedDate(new Date(location.state.previousSelectedDate));
+    }
+  }, [location.state]);
 
   useEffect(() => {
-    if (
-      viewMode === "year" &&
-      monthRefs.current[
-        formatDateWithOptions(selectedDate, { weekday: undefined }).split(
-          " "
-        )[0]
-      ]
-    ) {
-      monthRefs.current[
-        formatDateWithOptions(selectedDate, { weekday: undefined }).split(
-          " "
-        )[0]
-      ].scrollIntoView({ behavior: "smooth" });
+    window.lastViewMode = viewMode;
+  }, [viewMode]);
+
+  useEffect(() => {
+    if (viewMode === "year") {
+      setTimeout(() => {
+        const scrollDate = location.state?.previousSelectedDate
+          ? new Date(location.state.previousSelectedDate)
+          : today;
+        const monthKey = new Date(
+          scrollDate.getFullYear(),
+          scrollDate.getMonth()
+        ).toLocaleDateString("en-US", {
+          month: "long",
+          year: "numeric",
+        });
+        const ref = monthRefs.current[monthKey];
+        if (ref) {
+          ref.scrollIntoView({ behavior: "smooth" });
+        }
+      }, 100);
     }
-  }, [viewMode, selectedDate]);
+  }, [viewMode]);
   useEffect(() => {
     async function fetchWorkoutLogs() {
       const { data, error } = await supabase.from("workout_logs").select("*");
@@ -130,14 +143,42 @@ export default function CalendarView() {
     const formatted = formatDateForDisplay(date);
     setSelectedDate(date);
     const log = workoutLogs.find((l) => l.date === formatted);
-    if (log && isToday(date)) {
-      navigate("/summary/" + formatted, { state: { allowLogAnother: true } });
-    } else if (isToday(date)) {
-      navigate("/preview/" + formatted);
-    } else if (isBefore(date, today)) {
-      navigate("/summary/" + formatted);
+
+    if (log?.skipped) {
+      navigate("/summary/" + formatted, {
+        state: {
+          previousViewMode: viewMode,
+          previousSelectedDate: selectedDate.toISOString(),
+        },
+      });
+    } else if (log && !log.forecast) {
+      navigate("/summary/" + formatted, {
+        state: {
+          previousViewMode: viewMode,
+          previousSelectedDate: selectedDate.toISOString(),
+        },
+      });
+    } else if (log?.forecast) {
+      navigate("/preview/" + formatted, {
+        state: {
+          previousViewMode: viewMode,
+          previousSelectedDate: selectedDate.toISOString(),
+        },
+      });
+    } else if (!log && isBefore(date, today)) {
+      navigate("/summary/" + formatted, {
+        state: {
+          previousViewMode: viewMode,
+          previousSelectedDate: selectedDate.toISOString(),
+        },
+      });
     } else {
-      navigate("/preview/" + formatted);
+      navigate("/preview/" + formatted, {
+        state: {
+          previousViewMode: viewMode,
+          previousSelectedDate: selectedDate.toISOString(),
+        },
+      });
     }
   };
 
@@ -159,6 +200,19 @@ export default function CalendarView() {
 
   const handleGoToToday = () => {
     setSelectedDate(today);
+    if (viewMode === "year") {
+      const monthKey = new Date(
+        today.getFullYear(),
+        today.getMonth()
+      ).toLocaleDateString("en-US", {
+        month: "long",
+        year: "numeric",
+      });
+      const ref = monthRefs.current[monthKey];
+      if (ref) {
+        ref.scrollIntoView({ behavior: "smooth" });
+      }
+    }
   };
 
   const renderControls = () => (
@@ -166,10 +220,10 @@ export default function CalendarView() {
       <div className="flex justify-between items-start mb-4 flex-wrap gap-2 sm:flex-nowrap">
         <div className="flex items-center gap-2">
           <button
-            onClick={() => navigate(-1)}
+            onClick={() => navigate("/")}
             className="text-sm border border-white px-3 py-1 rounded hover:bg-white/10"
           >
-            ← Back
+            Home
           </button>
         </div>
 
@@ -184,8 +238,12 @@ export default function CalendarView() {
             </button>
             <h2 className="text-lg font-semibold text-[#C63663]">
               {viewMode === "week"
-                ? `Week of ${formatDateWithOptions(currentWeekStart)}`
+                ? `Week of ${currentWeekStart.toLocaleDateString("en-US", {
+                    month: "short",
+                    day: "numeric",
+                  })}`
                 : currentMonth.toLocaleDateString("en-US", {
+                    weekday: undefined,
                     month: "long",
                     year: "numeric",
                   })}
@@ -263,12 +321,17 @@ export default function CalendarView() {
           } else if (!log && isBefore(date, today)) {
             forecastLabel = "❓";
           } else {
-            const weekday = getWeekday(date).toLowerCase();
+            const weekday = getWeekday(date).toLowerCase().trim();
             const templateForDay = workoutTemplates.find(
-              (t) => t.day_of_week === weekday
+              (t) =>
+                t.day_of_week && t.day_of_week.toLowerCase().trim() === weekday
             );
             if (templateForDay) {
-              forecastLabel = `🏋️ ${templateForDay.workout_name}`;
+              // Only show the icon for future dates in Grid View
+              forecastLabel =
+                viewMode === "month" || viewMode === "year"
+                  ? "🏋️"
+                  : `🏋️ ${templateForDay.workout_name}`;
             }
           }
           // --- Forecast logic block end ---
@@ -342,9 +405,11 @@ export default function CalendarView() {
             } else if (!log && isBefore(date, today)) {
               forecastLabel = "❓ Not logged";
             } else {
-              const weekday = getWeekday(date).toLowerCase();
+              const weekday = getWeekday(date).toLowerCase().trim();
               const templateForDay = workoutTemplates.find(
-                (t) => t.day_of_week === weekday
+                (t) =>
+                  t.day_of_week &&
+                  t.day_of_week.toLowerCase().trim() === weekday
               );
               if (templateForDay) {
                 forecastLabel = `🏋️ ${templateForDay.workout_name}`;
@@ -392,7 +457,10 @@ export default function CalendarView() {
           : Object.entries(groupedByMonth).map(([month, dates]) => (
               <div key={month} ref={(el) => (monthRefs.current[month] = el)}>
                 <h2 className="text-lg font-semibold text-[#C63663] mb-2">
-                  {month}
+                  {new Date(`${month} 1`).toLocaleDateString("en-US", {
+                    month: "long",
+                    year: "numeric",
+                  })}
                 </h2>
                 {renderGridDays(dates)}
               </div>

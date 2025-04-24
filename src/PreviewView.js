@@ -93,7 +93,14 @@ function PreviewView() {
       <div className="sticky top-0 z-10 bg-[#242B2F] pt-4 pb-2">
         <div className="flex justify-between items-center mb-4">
           <button
-            onClick={() => navigate(-1)}
+            onClick={() =>
+              navigate("/calendar", {
+                state: {
+                  previousViewMode: window.lastViewMode || "week",
+                  previousSelectedDate: date,
+                },
+              })
+            }
             className="text-sm border border-white px-3 py-1 rounded hover:bg-white/10"
           >
             ← Back
@@ -128,14 +135,22 @@ function PreviewView() {
                       >
                         <p className="font-semibold text-white">{ex.name}</p>
                         <p className="text-gray-300 text-xs">
-                          {ex.sets && ex.reps
-                            ? `${ex.sets} sets × ${ex.reps} reps`
-                            : ""}
-                          {ex.duration
-                            ? `${ex.sets && ex.reps ? " – " : ""}${ex.duration}`
-                            : ""}
-                          {ex.weight ? ` @ ${ex.weight} lbs` : ""}
-                          {ex.rpe ? ` (RPE ${ex.rpe})` : ""}
+                          {ex.sets && `Sets: ${ex.sets} `}
+                          {ex.reps && `Reps: ${ex.reps} `}
+                          {ex.weighted &&
+                            ex.weight &&
+                            `Weight: ${ex.weight} lbs `}
+                          {ex.rpe && `RPE: ${ex.rpe} `}
+                          {ex.rounds && `Rounds: ${ex.rounds} `}
+                          {ex.work && `Work: ${ex.work} `}
+                          {ex.rest && `Rest: ${ex.rest} `}
+                          {ex.timed &&
+                            ex.duration &&
+                            `Duration: ${ex.duration} `}
+                          {/* Cardio tag */}
+                          {ex.cardio && (
+                            <span className="ml-1 text-[#6EE7B7]">Cardio</span>
+                          )}
                         </p>
                         {ex.notes && (
                           <p className="text-xs text-gray-400 mt-1">
@@ -150,13 +165,39 @@ function PreviewView() {
           )}
       </div>
       {!logForDate?.hasLoggedWorkout && (
-        <div className="mt-8 flex justify-center">
+        <div className="mt-8 flex flex-col gap-4">
           <Link
             to={`/log/${date}`}
             className="bg-[#C63663] text-white px-6 py-3 rounded-xl shadow hover:brightness-110 transition w-full text-center"
           >
             Start Workout
           </Link>
+          <button
+            onClick={async () => {
+              if (
+                window.confirm("Are you sure you want to skip this workout?")
+              ) {
+                const { error } = await supabase.from("workout_logs").insert([
+                  {
+                    date,
+                    forecast: false,
+                    skipped: true,
+                    muscle_group: logForDate?.muscle_group || "",
+                    day: getWeekday(date),
+                  },
+                ]);
+
+                if (error) {
+                  console.error("Error skipping workout:", error);
+                } else {
+                  navigate(`/summary/${date}`);
+                }
+              }
+            }}
+            className="bg-gray-600 text-white px-6 py-3 rounded-xl shadow hover:brightness-110 transition w-full text-center"
+          >
+            Skip Workout
+          </button>
         </div>
       )}
     </div>

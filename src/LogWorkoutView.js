@@ -29,19 +29,54 @@ export default function LogWorkoutView() {
 
       if (data) {
         setLog(data);
+        const flatExercises = [
+          ...(data.exercises?.warmup || []),
+          ...(data.exercises?.main || []),
+          ...(data.exercises?.cooldown || []),
+        ];
         setFormData(
-          data.exercises.map((exercise) => ({
-            name: exercise.name,
-            sets: exercise.sets || "",
-            reps: exercise.reps || "",
-            weight: exercise.weight || "",
-            rpe: exercise.rpe || "",
-            duration: exercise.duration || "",
-            note: exercise.note || "",
-            section: exercise.section || "main",
-            completed:
-              exercise.completed !== undefined ? exercise.completed : true,
-          }))
+          flatExercises.map((exercise) => {
+            const isWeighted =
+              exercise.weighted !== undefined
+                ? exercise.weighted
+                : exercise.weight > 0;
+            const isTimed =
+              exercise.timed !== undefined
+                ? exercise.timed
+                : !!exercise.duration;
+            const isCardio =
+              exercise.cardio !== undefined
+                ? exercise.cardio
+                : !!(
+                    exercise.rounds ||
+                    exercise.work ||
+                    exercise.rest ||
+                    exercise.subtype === "hiit"
+                  );
+            const subtype =
+              exercise.subtype ||
+              (isCardio && exercise.work && exercise.rest ? "hiit" : "");
+
+            return {
+              name: exercise.name,
+              sets: exercise.sets || "",
+              reps: exercise.reps || "",
+              weight: exercise.weight || "",
+              rpe: exercise.rpe || "",
+              duration: exercise.duration || "",
+              rounds: exercise.rounds || "",
+              rest: exercise.rest || "",
+              work: exercise.work || "",
+              note: exercise.note || "",
+              section: exercise.section || "main",
+              weighted: isWeighted,
+              timed: isTimed,
+              cardio: isCardio,
+              subtype: subtype,
+              completed:
+                exercise.completed !== undefined ? exercise.completed : true,
+            };
+          })
         );
       } else {
         // No existing log — forecast from template
@@ -54,6 +89,7 @@ export default function LogWorkoutView() {
         if (template && template.length > 0) {
           const firstTemplate = template[0];
           const sections = ["warmup", "main", "cooldown"];
+          // Build structuredData, preserving all flags and including rounds/rest/work/duration for all
           const structuredData = sections.flatMap((section) =>
             (firstTemplate.exercises?.[section] || []).map((exercise) => ({
               name: exercise.name,
@@ -62,8 +98,14 @@ export default function LogWorkoutView() {
               weight: exercise.weight || "",
               rpe: exercise.rpe || "",
               duration: exercise.duration || "",
+              rounds: exercise.rounds || "",
+              rest: exercise.rest || "",
+              work: exercise.work || "",
               note: exercise.note || "",
               section,
+              weighted: exercise.weighted || false,
+              timed: exercise.timed || false,
+              cardio: exercise.cardio || false,
               completed: section === "main" ? true : false,
             }))
           );
@@ -108,7 +150,11 @@ export default function LogWorkoutView() {
       if (error) {
         console.error("Error updating workout:", error);
       } else {
-        navigate(`/summary?date=${selectedDate}`);
+        if (selectedDate) {
+          navigate(`/summary/${selectedDate}`);
+        } else {
+          navigate("/summary");
+        }
       }
     } else {
       const { error } = await supabase.from("workout_logs").insert([
@@ -128,7 +174,11 @@ export default function LogWorkoutView() {
       if (error) {
         console.error("Error inserting workout:", error);
       } else {
-        navigate(`/summary?date=${selectedDate}`);
+        if (selectedDate) {
+          navigate(`/summary/${selectedDate}`);
+        } else {
+          navigate("/summary");
+        }
       }
     }
   };
@@ -159,165 +209,270 @@ export default function LogWorkoutView() {
         {log.day || getWeekday(selectedDate)} — {log.muscle_group}
       </h2>
 
-      <form className="space-y-6 mt-4">
-        {["warmup", "main", "cooldown"].map((section) => {
-          const exercises = formData.filter((ex) => ex.section === section);
-          if (exercises.length === 0) return null;
-          return (
-            <div key={section}>
-              <h3 className="text-white text-lg font-semibold capitalize mb-2">
-                {section}
-              </h3>
-              <div className="space-y-4">
-                {exercises.map((exercise, index) => (
-                  <div
-                    key={index}
-                    className="bg-[#343E44] p-4 rounded space-y-2"
-                  >
-                    <div className="flex justify-between items-center">
-                      <div>
-                        <p className="font-semibold text-white">
-                          {exercise.name}
-                        </p>
-                        {(section === "warmup" || section === "cooldown") &&
-                          exercise.duration && (
-                            <p className="text-sm text-gray-300">
-                              {exercise.duration}
-                            </p>
+      <div className="pb-20">
+        <form className="space-y-6 mt-4">
+          {["warmup", "main", "cooldown"].map((section) => {
+            const exercises = formData.filter((ex) => ex.section === section);
+            if (exercises.length === 0) return null;
+            return (
+              <div key={section}>
+                <h3 className="text-white text-lg font-semibold capitalize mb-2">
+                  {section}
+                </h3>
+                <div className="space-y-4">
+                  {exercises.map((exercise, index) => (
+                    <div
+                      key={index}
+                      className="bg-[#343E44] p-4 rounded space-y-2"
+                    >
+                      <div className="flex justify-between items-center">
+                        <div>
+                          <p className="font-semibold text-white">
+                            {exercise.name}
+                          </p>
+                          {(section === "warmup" || section === "cooldown") &&
+                            exercise.duration && (
+                              <p className="text-sm text-gray-300">
+                                {exercise.duration}
+                              </p>
+                            )}
+                        </div>
+                        {(section === "warmup" || section === "cooldown") && (
+                          <label className="text-sm flex items-center gap-1">
+                            <input
+                              type="checkbox"
+                              checked={exercise.completed || false}
+                              onChange={(e) =>
+                                handleChange(
+                                  formData.indexOf(exercise),
+                                  "completed",
+                                  e.target.checked
+                                )
+                              }
+                            />
+                            <span className="text-white">Done</span>
+                          </label>
+                        )}
+                      </div>
+                      {section === "main" && (
+                        <div className="grid grid-cols-4 gap-2 text-sm">
+                          {exercise.sets && (
+                            <div className="flex flex-col">
+                              <label className="text-xs text-gray-400 mb-1">
+                                Sets
+                              </label>
+                              <input
+                                type="number"
+                                className="p-1 rounded bg-transparent border border-[#818C91] text-white"
+                                value={exercise.sets}
+                                onChange={(e) =>
+                                  handleChange(
+                                    formData.indexOf(exercise),
+                                    "sets",
+                                    e.target.value
+                                  )
+                                }
+                              />
+                            </div>
                           )}
-                      </div>
-                      {(section === "warmup" || section === "cooldown") && (
-                        <label className="text-sm flex items-center gap-1">
-                          <input
-                            type="checkbox"
-                            checked={exercise.completed || false}
-                            onChange={(e) =>
-                              handleChange(
-                                formData.indexOf(exercise),
-                                "completed",
-                                e.target.checked
-                              )
-                            }
-                          />
-                          <span className="text-white">Done</span>
-                        </label>
-                      )}
-                    </div>
-                    {section === "main" && (
-                      <div className="grid grid-cols-4 gap-2 text-sm">
-                        <div className="flex flex-col">
-                          <label className="text-xs text-gray-400 mb-1">
-                            Sets
-                          </label>
-                          <input
-                            type="number"
-                            className="p-1 rounded bg-transparent border border-[#818C91] text-white"
-                            value={exercise.sets}
-                            onChange={(e) =>
-                              handleChange(
-                                formData.indexOf(exercise),
-                                "sets",
-                                e.target.value
-                              )
-                            }
-                          />
-                        </div>
-                        <div className="flex flex-col">
-                          <label className="text-xs text-gray-400 mb-1">
-                            Reps
-                          </label>
-                          <input
-                            type="number"
-                            className="p-1 rounded bg-transparent border border-[#818C91] text-white"
-                            value={exercise.reps}
-                            onChange={(e) =>
-                              handleChange(
-                                formData.indexOf(exercise),
-                                "reps",
-                                e.target.value
-                              )
-                            }
-                          />
-                        </div>
-                        <div className="flex flex-col">
-                          <label className="text-xs text-gray-400 mb-1">
-                            Weight
-                          </label>
-                          <input
-                            type="number"
-                            className="p-1 rounded bg-transparent border border-[#818C91] text-white"
-                            value={exercise.weight}
-                            onChange={(e) =>
-                              handleChange(
-                                formData.indexOf(exercise),
-                                "weight",
-                                e.target.value
-                              )
-                            }
-                          />
-                        </div>
-                        <div className="flex flex-col">
-                          <label className="text-xs text-gray-400 mb-1">
-                            RPE
-                          </label>
-                          <select
-                            className="p-1 rounded bg-transparent border border-[#818C91] text-white"
-                            value={exercise.rpe}
-                            onChange={(e) =>
-                              handleChange(
-                                formData.indexOf(exercise),
-                                "rpe",
-                                e.target.value
-                              )
-                            }
-                          >
-                            <option value="">Select</option>
-                            {[
-                              "Very Easy",
-                              "Easy",
-                              "Light",
-                              "Moderate Light",
-                              "Moderate",
-                              "Some Effort",
-                              "Challenging",
-                              "Hard",
-                              "Very Hard",
-                              "Max Effort",
-                            ].map((label, i) => (
-                              <option key={i + 1} value={i + 1}>
-                                {i + 1} – {label}
-                              </option>
-                            ))}
-                          </select>
-                        </div>
-                      </div>
-                    )}
-                    <textarea
-                      placeholder="Notes"
-                      className="w-full p-1 rounded bg-transparent border border-[#818C91] text-white text-sm"
-                      value={exercise.note}
-                      onChange={(e) =>
-                        handleChange(
-                          formData.indexOf(exercise),
-                          "note",
-                          e.target.value
-                        )
-                      }
-                    />
-                  </div>
-                ))}
-              </div>
-            </div>
-          );
-        })}
-      </form>
 
-      <button
-        onClick={handleSubmit}
-        className="mt-6 w-full bg-[#C63663] text-white py-2 rounded text-sm font-semibold"
-      >
-        Save Workout
-      </button>
+                          {exercise.reps && (
+                            <div className="flex flex-col">
+                              <label className="text-xs text-gray-400 mb-1">
+                                Reps
+                              </label>
+                              <input
+                                type="number"
+                                className="p-1 rounded bg-transparent border border-[#818C91] text-white"
+                                value={exercise.reps}
+                                onChange={(e) =>
+                                  handleChange(
+                                    formData.indexOf(exercise),
+                                    "reps",
+                                    e.target.value
+                                  )
+                                }
+                              />
+                            </div>
+                          )}
+
+                          {section === "main" && exercise.weighted && (
+                            <>
+                              <div className="flex flex-col">
+                                <label className="text-xs text-gray-400 mb-1">
+                                  Weight
+                                </label>
+                                <input
+                                  type="number"
+                                  className="p-1 rounded bg-transparent border border-[#818C91] text-white"
+                                  value={exercise.weight}
+                                  onChange={(e) =>
+                                    handleChange(
+                                      formData.indexOf(exercise),
+                                      "weight",
+                                      e.target.value
+                                    )
+                                  }
+                                />
+                              </div>
+                            </>
+                          )}
+
+                          {section === "main" && exercise.weighted && (
+                            <>
+                              <div className="flex flex-col">
+                                <label className="text-xs text-gray-400 mb-1">
+                                  RPE
+                                </label>
+                                <select
+                                  className="p-1 rounded bg-transparent border border-[#818C91] text-white"
+                                  value={exercise.rpe}
+                                  onChange={(e) =>
+                                    handleChange(
+                                      formData.indexOf(exercise),
+                                      "rpe",
+                                      e.target.value
+                                    )
+                                  }
+                                >
+                                  <option value="">Select</option>
+                                  {[
+                                    "Very Easy",
+                                    "Easy",
+                                    "Light",
+                                    "Moderate Light",
+                                    "Moderate",
+                                    "Some Effort",
+                                    "Challenging",
+                                    "Hard",
+                                    "Very Hard",
+                                    "Max Effort",
+                                  ].map((label, i) => (
+                                    <option key={i + 1} value={i + 1}>
+                                      {i + 1} – {label}
+                                    </option>
+                                  ))}
+                                </select>
+                              </div>
+                            </>
+                          )}
+
+                          {section === "main" &&
+                            exercise.timed &&
+                            exercise.duration && (
+                              <div className="flex flex-col">
+                                <label className="text-xs text-gray-400 mb-1">
+                                  Duration
+                                </label>
+                                <input
+                                  type="text"
+                                  className="p-1 rounded bg-transparent border border-[#818C91] text-white"
+                                  value={exercise.duration}
+                                  onChange={(e) =>
+                                    handleChange(
+                                      formData.indexOf(exercise),
+                                      "duration",
+                                      e.target.value
+                                    )
+                                  }
+                                />
+                              </div>
+                            )}
+
+                          {section === "main" &&
+                            (exercise.cardio ||
+                              exercise.subtype === "hiit") && (
+                              <>
+                                {exercise.rounds && (
+                                  <div className="flex flex-col">
+                                    <label className="text-xs text-gray-400 mb-1">
+                                      Rounds
+                                    </label>
+                                    <input
+                                      type="number"
+                                      className="p-1 rounded bg-transparent border border-[#818C91] text-white"
+                                      value={exercise.rounds}
+                                      onChange={(e) =>
+                                        handleChange(
+                                          formData.indexOf(exercise),
+                                          "rounds",
+                                          e.target.value
+                                        )
+                                      }
+                                    />
+                                  </div>
+                                )}
+                                {exercise.work && (
+                                  <div className="flex flex-col">
+                                    <label className="text-xs text-gray-400 mb-1">
+                                      Work
+                                    </label>
+                                    <input
+                                      type="text"
+                                      className="p-1 rounded bg-transparent border border-[#818C91] text-white"
+                                      value={exercise.work}
+                                      onChange={(e) =>
+                                        handleChange(
+                                          formData.indexOf(exercise),
+                                          "work",
+                                          e.target.value
+                                        )
+                                      }
+                                    />
+                                  </div>
+                                )}
+                                {exercise.rest && (
+                                  <div className="flex flex-col">
+                                    <label className="text-xs text-gray-400 mb-1">
+                                      Rest
+                                    </label>
+                                    <input
+                                      type="text"
+                                      className="p-1 rounded bg-transparent border border-[#818C91] text-white"
+                                      value={exercise.rest}
+                                      onChange={(e) =>
+                                        handleChange(
+                                          formData.indexOf(exercise),
+                                          "rest",
+                                          e.target.value
+                                        )
+                                      }
+                                    />
+                                  </div>
+                                )}
+                              </>
+                            )}
+                        </div>
+                      )}
+                      <textarea
+                        placeholder="Notes"
+                        className="w-full p-1 rounded bg-transparent border border-[#818C91] text-white text-sm"
+                        value={exercise.note}
+                        onChange={(e) =>
+                          handleChange(
+                            formData.indexOf(exercise),
+                            "note",
+                            e.target.value
+                          )
+                        }
+                      />
+                    </div>
+                  ))}
+                </div>
+              </div>
+            );
+          })}
+        </form>
+      </div>
+
+      <div className="fixed bottom-0 left-0 right-0 bg-[#242B2F] p-4 shadow-md z-10">
+        <button
+          onClick={handleSubmit}
+          className="w-full bg-[#C63663] text-white py-2 rounded text-sm font-semibold"
+        >
+          Save Workout
+        </button>
+      </div>
     </div>
   );
 }

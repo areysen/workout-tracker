@@ -263,6 +263,8 @@ export default function LogWorkoutView() {
                               </label>
                               <input
                                 type="number"
+                                inputMode="numeric"
+                                pattern="[0-9]*"
                                 className="p-1 rounded bg-transparent border border-[#818C91] text-white"
                                 value={exercise.sets}
                                 onChange={(e) =>
@@ -283,6 +285,8 @@ export default function LogWorkoutView() {
                               </label>
                               <input
                                 type="number"
+                                inputMode="numeric"
+                                pattern="[0-9]*"
                                 className="p-1 rounded bg-transparent border border-[#818C91] text-white"
                                 value={exercise.reps}
                                 onChange={(e) =>
@@ -304,6 +308,8 @@ export default function LogWorkoutView() {
                                 </label>
                                 <input
                                   type="number"
+                                  inputMode="numeric"
+                                  pattern="[0-9]*"
                                   className="p-1 rounded bg-transparent border border-[#818C91] text-white"
                                   value={exercise.weight}
                                   onChange={(e) =>
@@ -327,6 +333,8 @@ export default function LogWorkoutView() {
                                 <select
                                   className="p-1 rounded bg-transparent border border-[#818C91] text-white"
                                   value={exercise.rpe}
+                                  inputMode="numeric"
+                                  pattern="[0-9]*"
                                   onChange={(e) =>
                                     handleChange(
                                       formData.indexOf(exercise),
@@ -390,6 +398,8 @@ export default function LogWorkoutView() {
                                     </label>
                                     <input
                                       type="number"
+                                      inputMode="numeric"
+                                      pattern="[0-9]*"
                                       className="p-1 rounded bg-transparent border border-[#818C91] text-white"
                                       value={exercise.rounds}
                                       onChange={(e) =>

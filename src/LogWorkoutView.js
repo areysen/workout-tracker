@@ -265,7 +265,7 @@ export default function LogWorkoutView() {
                                 type="number"
                                 inputMode="numeric"
                                 pattern="[0-9]*"
-                                className="p-1 rounded bg-transparent border border-[#818C91] text-white text-sm text-base"
+                                className="p-1 rounded bg-transparent border border-[#818C91] text-white text-base"
                                 value={exercise.sets}
                                 onChange={(e) =>
                                   handleChange(
@@ -287,7 +287,7 @@ export default function LogWorkoutView() {
                                 type="number"
                                 inputMode="numeric"
                                 pattern="[0-9]*"
-                                className="p-1 rounded bg-transparent border border-[#818C91] text-white text-sm text-base"
+                                className="p-1 rounded bg-transparent border border-[#818C91] text-white text-base"
                                 value={exercise.reps}
                                 onChange={(e) =>
                                   handleChange(
@@ -310,7 +310,7 @@ export default function LogWorkoutView() {
                                   type="number"
                                   inputMode="numeric"
                                   pattern="[0-9]*"
-                                  className="p-1 rounded bg-transparent border border-[#818C91] text-white text-sm text-base"
+                                  className="p-1 rounded bg-transparent border border-[#818C91] text-white text-base"
                                   value={exercise.weight}
                                   onChange={(e) =>
                                     handleChange(
@@ -331,7 +331,7 @@ export default function LogWorkoutView() {
                                   RPE
                                 </label>
                                 <select
-                                  className="p-1 rounded bg-transparent border border-[#818C91] text-white text-sm text-base"
+                                  className="p-1 rounded bg-transparent border border-[#818C91] text-white text-base"
                                   value={exercise.rpe}
                                   inputMode="numeric"
                                   pattern="[0-9]*"
@@ -374,7 +374,7 @@ export default function LogWorkoutView() {
                                 </label>
                                 <input
                                   type="text"
-                                  className="p-1 rounded bg-transparent border border-[#818C91] text-white text-sm text-base"
+                                  className="p-1 rounded bg-transparent border border-[#818C91] text-white text-base"
                                   value={exercise.duration}
                                   onChange={(e) =>
                                     handleChange(
@@ -400,7 +400,7 @@ export default function LogWorkoutView() {
                                       type="number"
                                       inputMode="numeric"
                                       pattern="[0-9]*"
-                                      className="p-1 rounded bg-transparent border border-[#818C91] text-white text-sm text-base"
+                                      className="p-1 rounded bg-transparent border border-[#818C91] text-white text-base"
                                       value={exercise.rounds}
                                       onChange={(e) =>
                                         handleChange(
@@ -419,7 +419,7 @@ export default function LogWorkoutView() {
                                     </label>
                                     <input
                                       type="text"
-                                      className="p-1 rounded bg-transparent border border-[#818C91] text-white text-sm text-base"
+                                      className="p-1 rounded bg-transparent border border-[#818C91] text-white text-base"
                                       value={exercise.work}
                                       onChange={(e) =>
                                         handleChange(
@@ -438,7 +438,7 @@ export default function LogWorkoutView() {
                                     </label>
                                     <input
                                       type="text"
-                                      className="p-1 rounded bg-transparent border border-[#818C91] text-white text-sm text-base"
+                                      className="p-1 rounded bg-transparent border border-[#818C91] text-white text-base"
                                       value={exercise.rest}
                                       onChange={(e) =>
                                         handleChange(
@@ -456,7 +456,7 @@ export default function LogWorkoutView() {
                       )}
                       <textarea
                         placeholder="Notes"
-                        className="w-full p-1 rounded bg-transparent border border-[#818C91] text-white text-sm text-base"
+                        className="w-full p-1 rounded bg-transparent border border-[#818C91] text-white text-base"
                         value={exercise.note}
                         onChange={(e) =>
                           handleChange(

@@ -6,7 +6,6 @@ import SummaryView from "./SummaryView";
 import PreviewView from "./PreviewView";
 import LogWorkoutView from "./LogWorkoutView";
 
-
 function App() {
   return (
     <>

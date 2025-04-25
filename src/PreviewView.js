@@ -1,4 +1,4 @@
-import { useParams, Link, useNavigate } from "react-router-dom";
+import { useParams, Link, useNavigate, useLocation } from "react-router-dom";
 import { useEffect, useState } from "react";
 import { supabase } from "./supabaseClient";
 import { getWeekday, formatDateWithOptions } from "./utils";
@@ -6,6 +6,7 @@ import { getWeekday, formatDateWithOptions } from "./utils";
 function PreviewView() {
   const { date } = useParams();
   const navigate = useNavigate();
+  const location = useLocation();
   const [logForDate, setLogForDate] = useState(null);
   const [loading, setLoading] = useState(true);
   useEffect(() => {
@@ -93,15 +94,18 @@ function PreviewView() {
       <div className="sticky top-0 z-10 bg-[#242B2F] pt-4 pb-2">
         <div className="flex justify-between items-center mb-4">
           <button
-            onClick={() =>
-              navigate("/calendar", {
-                state: {
-                  previousViewMode: window.lastViewMode || "week",
-                  previousSelectedDate: date,
-                },
-              })
-            }
-            className="text-sm border border-white px-3 py-1 rounded hover:bg-white/10"
+            onClick={() => {
+              if (location.state?.fromTodayView) {
+                navigate("/");
+              } else {
+                navigate("/calendar", {
+                  state: {
+                    previousViewMode: window.lastViewMode || "week",
+                    previousSelectedDate: date,
+                  },
+                });
+              }
+            }}
           >
             ← Back
           </button>

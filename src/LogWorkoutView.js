@@ -191,6 +191,11 @@ export default function LogWorkoutView() {
 
   return (
     <div className="min-h-screen bg-[#242B2F] text-white p-4 max-w-3xl mx-auto">
+      {!log?.forecast && (
+        <div className="text-center bg-gradient-to-r from-pink-500 to-pink-700 text-white py-2 rounded mb-4 animate-pulse">
+          🚀 Mission Started! Crush today's workout!
+        </div>
+      )}
       <div className="sticky top-0 z-10 bg-[#242B2F] pt-4 pb-2">
         <div className="flex justify-between items-center mb-4">
           <button
@@ -216,16 +221,16 @@ export default function LogWorkoutView() {
             if (exercises.length === 0) return null;
             return (
               <div key={section}>
-                <h3 className="text-white text-lg font-semibold capitalize mb-2">
+                <h3 className="text-pink-400 text-xl font-bold capitalize mb-4">
                   {section}
                 </h3>
-                <div className="space-y-4">
+                <div className="space-y-6">
                   {exercises.map((exercise, index) => (
                     <div
                       key={index}
-                      className="bg-[#343E44] p-4 rounded space-y-2"
+                      className="bg-gradient-to-br from-[#2E353A] to-[#343E44] p-6 rounded-lg shadow-md border border-[#C63663] space-y-4"
                     >
-                      <div className="flex justify-between items-center">
+                      <div className="flex justify-between items-center mb-2">
                         <div>
                           <p className="font-semibold text-white">
                             {exercise.name}
@@ -255,9 +260,9 @@ export default function LogWorkoutView() {
                         )}
                       </div>
                       {section === "main" && (
-                        <div className="grid grid-cols-4 gap-2 text-sm">
+                        <div className="flex flex-wrap gap-4 text-sm">
                           {exercise.sets && (
-                            <div className="flex flex-col">
+                            <div className="flex-1 min-w-[100px] flex flex-col">
                               <label className="text-xs text-gray-400 mb-1">
                                 Sets
                               </label>
@@ -265,7 +270,7 @@ export default function LogWorkoutView() {
                                 type="number"
                                 inputMode="numeric"
                                 pattern="[0-9]*"
-                                className="p-1 rounded bg-transparent border border-[#818C91] text-white text-base"
+                                className="p-2 rounded bg-transparent border border-[#818C91] text-white text-base"
                                 value={exercise.sets}
                                 onChange={(e) =>
                                   handleChange(
@@ -279,7 +284,7 @@ export default function LogWorkoutView() {
                           )}
 
                           {exercise.reps && (
-                            <div className="flex flex-col">
+                            <div className="flex-1 min-w-[100px] flex flex-col">
                               <label className="text-xs text-gray-400 mb-1">
                                 Reps
                               </label>
@@ -287,7 +292,7 @@ export default function LogWorkoutView() {
                                 type="number"
                                 inputMode="numeric"
                                 pattern="[0-9]*"
-                                className="p-1 rounded bg-transparent border border-[#818C91] text-white text-base"
+                                className="p-2 rounded bg-transparent border border-[#818C91] text-white text-base"
                                 value={exercise.reps}
                                 onChange={(e) =>
                                   handleChange(
@@ -302,7 +307,7 @@ export default function LogWorkoutView() {
 
                           {section === "main" && exercise.weighted && (
                             <>
-                              <div className="flex flex-col">
+                              <div className="flex-1 min-w-[100px] flex flex-col">
                                 <label className="text-xs text-gray-400 mb-1">
                                   Weight
                                 </label>
@@ -310,7 +315,7 @@ export default function LogWorkoutView() {
                                   type="number"
                                   inputMode="numeric"
                                   pattern="[0-9]*"
-                                  className="p-1 rounded bg-transparent border border-[#818C91] text-white text-base"
+                                  className="p-2 rounded bg-transparent border border-[#818C91] text-white text-base"
                                   value={exercise.weight}
                                   onChange={(e) =>
                                     handleChange(
@@ -324,57 +329,16 @@ export default function LogWorkoutView() {
                             </>
                           )}
 
-                          {section === "main" && exercise.weighted && (
-                            <>
-                              <div className="flex flex-col">
-                                <label className="text-xs text-gray-400 mb-1">
-                                  RPE
-                                </label>
-                                <select
-                                  className="p-1 rounded bg-transparent border border-[#818C91] text-white text-base"
-                                  value={exercise.rpe}
-                                  inputMode="numeric"
-                                  pattern="[0-9]*"
-                                  onChange={(e) =>
-                                    handleChange(
-                                      formData.indexOf(exercise),
-                                      "rpe",
-                                      e.target.value
-                                    )
-                                  }
-                                >
-                                  <option value="">Select</option>
-                                  {[
-                                    "Very Easy",
-                                    "Easy",
-                                    "Light",
-                                    "Moderate Light",
-                                    "Moderate",
-                                    "Some Effort",
-                                    "Challenging",
-                                    "Hard",
-                                    "Very Hard",
-                                    "Max Effort",
-                                  ].map((label, i) => (
-                                    <option key={i + 1} value={i + 1}>
-                                      {i + 1} – {label}
-                                    </option>
-                                  ))}
-                                </select>
-                              </div>
-                            </>
-                          )}
-
                           {section === "main" &&
                             exercise.timed &&
                             exercise.duration && (
-                              <div className="flex flex-col">
+                              <div className="flex-1 min-w-[100px] flex flex-col">
                                 <label className="text-xs text-gray-400 mb-1">
                                   Duration
                                 </label>
                                 <input
                                   type="text"
-                                  className="p-1 rounded bg-transparent border border-[#818C91] text-white text-base"
+                                  className="p-2 rounded bg-transparent border border-[#818C91] text-white text-base"
                                   value={exercise.duration}
                                   onChange={(e) =>
                                     handleChange(
@@ -392,7 +356,7 @@ export default function LogWorkoutView() {
                               exercise.subtype === "hiit") && (
                               <>
                                 {exercise.rounds && (
-                                  <div className="flex flex-col">
+                                  <div className="flex-1 min-w-[100px] flex flex-col">
                                     <label className="text-xs text-gray-400 mb-1">
                                       Rounds
                                     </label>
@@ -400,7 +364,7 @@ export default function LogWorkoutView() {
                                       type="number"
                                       inputMode="numeric"
                                       pattern="[0-9]*"
-                                      className="p-1 rounded bg-transparent border border-[#818C91] text-white text-base"
+                                      className="p-2 rounded bg-transparent border border-[#818C91] text-white text-base"
                                       value={exercise.rounds}
                                       onChange={(e) =>
                                         handleChange(
@@ -413,13 +377,13 @@ export default function LogWorkoutView() {
                                   </div>
                                 )}
                                 {exercise.work && (
-                                  <div className="flex flex-col">
+                                  <div className="flex-1 min-w-[100px] flex flex-col">
                                     <label className="text-xs text-gray-400 mb-1">
                                       Work
                                     </label>
                                     <input
                                       type="text"
-                                      className="p-1 rounded bg-transparent border border-[#818C91] text-white text-base"
+                                      className="p-2 rounded bg-transparent border border-[#818C91] text-white text-base"
                                       value={exercise.work}
                                       onChange={(e) =>
                                         handleChange(
@@ -432,13 +396,13 @@ export default function LogWorkoutView() {
                                   </div>
                                 )}
                                 {exercise.rest && (
-                                  <div className="flex flex-col">
+                                  <div className="flex-1 min-w-[100px] flex flex-col">
                                     <label className="text-xs text-gray-400 mb-1">
                                       Rest
                                     </label>
                                     <input
                                       type="text"
-                                      className="p-1 rounded bg-transparent border border-[#818C91] text-white text-base"
+                                      className="p-2 rounded bg-transparent border border-[#818C91] text-white text-base"
                                       value={exercise.rest}
                                       onChange={(e) =>
                                         handleChange(
@@ -454,9 +418,47 @@ export default function LogWorkoutView() {
                             )}
                         </div>
                       )}
+                      {section === "main" && exercise.weighted && (
+                        <div className="flex flex-col">
+                          <label className="text-xs text-gray-400 mb-1">
+                            RPE
+                          </label>
+                          <select
+                            className="p-2 rounded bg-transparent border border-[#818C91] text-white text-base"
+                            value={exercise.rpe}
+                            inputMode="numeric"
+                            pattern="[0-9]*"
+                            onChange={(e) =>
+                              handleChange(
+                                formData.indexOf(exercise),
+                                "rpe",
+                                e.target.value
+                              )
+                            }
+                          >
+                            <option value="">Select</option>
+                            {[
+                              "Very Easy",
+                              "Easy",
+                              "Light",
+                              "Moderate Light",
+                              "Moderate",
+                              "Some Effort",
+                              "Challenging",
+                              "Hard",
+                              "Very Hard",
+                              "Max Effort",
+                            ].map((label, i) => (
+                              <option key={i + 1} value={i + 1}>
+                                {i + 1} – {label}
+                              </option>
+                            ))}
+                          </select>
+                        </div>
+                      )}
                       <textarea
                         placeholder="Notes"
-                        className="w-full p-1 rounded bg-transparent border border-[#818C91] text-white text-base"
+                        className="w-full p-2 rounded bg-transparent border border-[#818C91] text-white text-base"
                         value={exercise.note}
                         onChange={(e) =>
                           handleChange(
@@ -478,7 +480,7 @@ export default function LogWorkoutView() {
       <div className="fixed bottom-0 left-0 right-0 bg-[#242B2F] p-4 shadow-md z-10">
         <button
           onClick={handleSubmit}
-          className="w-full bg-[#C63663] text-white py-2 rounded text-sm font-semibold"
+          className="w-full bg-gradient-to-r from-pink-500 to-pink-700 text-white py-3 rounded font-bold text-lg hover:opacity-90 transition"
         >
           Save Workout
         </button>

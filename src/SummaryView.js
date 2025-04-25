@@ -1,11 +1,12 @@
 import React, { useEffect, useState } from "react";
-import { useParams, useNavigate } from "react-router-dom";
+import { useParams, useNavigate, useLocation } from "react-router-dom";
 import { supabase } from "./supabaseClient";
 import { getToday, formatDateWithOptions } from "./utils";
 
 export default function SummaryView() {
   const { date } = useParams();
   const today = getToday();
+  const location = useLocation();
   const formattedDate = formatDateWithOptions(date);
   const isToday = date === today;
   const navigate = useNavigate();
@@ -34,7 +35,9 @@ export default function SummaryView() {
         <div className="flex justify-between items-center mb-4">
           <button
             onClick={() => {
-              if (logEntry) {
+              if (location.state?.fromTodayView) {
+                navigate("/");
+              } else if (logEntry) {
                 navigate("/calendar", {
                   state: {
                     previousViewMode: window.lastViewMode || "week",
@@ -45,7 +48,6 @@ export default function SummaryView() {
                 navigate(-1);
               }
             }}
-            className="text-sm border border-white px-3 py-1 rounded hover:bg-white/10"
           >
             ← Back
           </button>

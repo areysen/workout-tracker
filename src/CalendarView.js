@@ -253,7 +253,7 @@ export default function CalendarView() {
   };
 
   const renderControls = () => (
-    <div className="sticky top-0 z-10 bg-[#242B2F] pt-4 pb-2">
+    <div className="sticky top-0 z-10 bg-[#242B2F] pt-[env(safe-area-inset-top)] pb-2">
       <div className="flex justify-between items-start mb-4 flex-wrap gap-2 sm:flex-nowrap">
         <div className="flex items-center gap-2">
           <BackButton to="/" label="Home" />

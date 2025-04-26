@@ -65,7 +65,7 @@ export default function SummaryView() {
 
   return (
     <div className="min-h-screen bg-[#242B2F] text-white p-4 max-w-3xl mx-auto">
-      <div className="sticky top-0 z-10 bg-[#242B2F] pt-4 pb-2">
+      <div className="sticky top-0 z-10 bg-[#242B2F] pt-[env(safe-area-inset-top)] pb-2">
         <div className="flex justify-between items-center mb-4 flex-wrap gap-3">
           <BackButton />
           <h1 className="text-xl font-bold">

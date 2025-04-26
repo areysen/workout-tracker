@@ -5,10 +5,13 @@ import CalendarView from "./CalendarView";
 import SummaryView from "./SummaryView";
 import PreviewView from "./PreviewView";
 import LogWorkoutView from "./LogWorkoutView";
+import { ToastProvider } from "./components/ToastContext";
+import ToastBanner from "./components/ToastBanner";
 
 function App() {
   return (
-    <>
+    <ToastProvider>
+      <ToastBanner /> {/* <-- Make sure this is right here */}
       <BrowserRouter>
         <Routes>
           <Route path="/" element={<TodayView />} />
@@ -18,7 +21,7 @@ function App() {
           <Route path="/log/:date" element={<LogWorkoutView />} />
         </Routes>
       </BrowserRouter>
-    </>
+    </ToastProvider>
   );
 }
 

@@ -17,6 +17,7 @@ import {
   subMonths,
 } from "date-fns";
 import { useNavigate, useLocation } from "react-router-dom";
+import { useToast } from "./components/ToastContext";
 import { motion, AnimatePresence } from "framer-motion";
 import { supabase } from "./supabaseClient";
 import {
@@ -25,8 +26,10 @@ import {
   formatDateForDisplay,
   getWeekday,
 } from "./utils";
+import BackButton from "./components/BackButton";
 
 export default function CalendarView() {
+  const { showToast } = useToast();
   const navigate = useNavigate();
   const today = new Date();
   const todayRef = useRef(null);
@@ -94,6 +97,16 @@ export default function CalendarView() {
   }, [viewMode]);
 
   useEffect(() => {
+    if (location.state?.showToast) {
+      console.log(
+        "[CalendarView] showToast triggered:",
+        location.state.showToast
+      );
+      showToast(location.state.showToast);
+    }
+    // eslint-disable-next-line
+  }, [location.state, showToast]);
+  useEffect(() => {
     if (viewMode === "year") {
       setTimeout(() => {
         const scrollDate = location.state?.previousSelectedDate
@@ -113,26 +126,40 @@ export default function CalendarView() {
       }, 100);
     }
   }, [viewMode]);
+  // Move fetchWorkoutLogs and fetchWorkoutTemplates outside useEffect for reuse
+  async function fetchWorkoutLogs() {
+    const { data, error } = await supabase.from("workout_logs").select("*");
+    if (error) {
+      console.error("Error fetching logs:", error);
+    } else {
+      setWorkoutLogs(data);
+    }
+  }
+  async function fetchWorkoutTemplates() {
+    const { data, error } = await supabase
+      .from("workout_templates")
+      .select("day_of_week, workout_name");
+    if (!error) {
+      setWorkoutTemplates(data);
+    }
+  }
   useEffect(() => {
-    async function fetchWorkoutLogs() {
-      const { data, error } = await supabase.from("workout_logs").select("*");
-      if (error) {
-        console.error("Error fetching logs:", error);
-      } else {
-        setWorkoutLogs(data);
-      }
-    }
-    async function fetchWorkoutTemplates() {
-      const { data, error } = await supabase
-        .from("workout_templates")
-        .select("day_of_week, workout_name");
-      if (!error) {
-        setWorkoutTemplates(data);
-      }
-    }
     fetchWorkoutLogs();
     fetchWorkoutTemplates();
   }, []);
+
+  // New useEffect for delayed refresh after undo timer (delete)
+  useEffect(() => {
+    if (location.state?.refreshAfterUndoTimer) {
+      const timer = setTimeout(() => {
+        fetchWorkoutLogs();
+        fetchWorkoutTemplates();
+        navigate(location.pathname, { replace: true, state: {} });
+      }, 5000);
+
+      return () => clearTimeout(timer);
+    }
+  }, [location.state]);
   useEffect(() => {
     if (viewMode === "month" && todayRef.current) {
       todayRef.current.scrollIntoView({ behavior: "smooth", block: "center" });

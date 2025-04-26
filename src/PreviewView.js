@@ -2,6 +2,7 @@ import { useParams, Link, useNavigate, useLocation } from "react-router-dom";
 import { useEffect, useState } from "react";
 import { supabase } from "./supabaseClient";
 import { getWeekday, formatDateWithOptions } from "./utils";
+import BackButton from "./components/BackButton";
 
 function PreviewView() {
   const { date } = useParams();
@@ -92,23 +93,8 @@ function PreviewView() {
   return (
     <div className="min-h-screen bg-[#242B2F] text-white p-4 max-w-3xl mx-auto">
       <div className="sticky top-0 z-10 bg-[#242B2F] pt-4 pb-2">
-        <div className="flex justify-between items-center mb-4">
-          <button
-            onClick={() => {
-              if (location.state?.fromTodayView) {
-                navigate("/");
-              } else {
-                navigate("/calendar", {
-                  state: {
-                    previousViewMode: window.lastViewMode || "week",
-                    previousSelectedDate: date,
-                  },
-                });
-              }
-            }}
-          >
-            ← Back
-          </button>
+        <div className="flex justify-between items-center mb-4 flex-wrap gap-3">
+          <BackButton />
           <h1 className="text-xl font-bold">
             Preview for {formatDateWithOptions(date)}
           </h1>

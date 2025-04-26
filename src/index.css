@@ -5,3 +5,8 @@
 html, body, #root {
   height: 100%;
 }
+
+html {
+  background-color: #242B2F;
+  padding-top: env(safe-area-inset-top);
+}

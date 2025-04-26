@@ -2,6 +2,10 @@ import React, { useEffect, useState } from "react";
 import { useSearchParams, useNavigate, useParams } from "react-router-dom";
 import { supabase } from "./supabaseClient";
 import { getToday, formatDateWithOptions, getWeekday } from "./utils";
+import BackButton from "./components/BackButton";
+import { motion } from "framer-motion";
+
+import { useToast } from "./components/ToastContext";
 
 export default function LogWorkoutView() {
   const [searchParams] = useSearchParams();
@@ -10,6 +14,7 @@ export default function LogWorkoutView() {
   const [log, setLog] = useState(null);
   const [loading, setLoading] = useState(true);
   const [formData, setFormData] = useState([]);
+  const { showToast } = useToast();
 
   useEffect(() => {
     async function fetchWorkout() {
@@ -133,13 +138,35 @@ export default function LogWorkoutView() {
   };
 
   const handleSubmit = async () => {
-    const updatedExercises = formData.map((exercise) => ({
-      ...exercise,
-      sets: Number(exercise.sets),
-      reps: Number(exercise.reps),
-      weight: Number(exercise.weight),
-      rpe: Number(exercise.rpe),
-    }));
+    const updatedExercises = {
+      warmup: formData
+        .filter((e) => e.section === "warmup")
+        .map((exercise) => ({
+          ...exercise,
+          sets: Number(exercise.sets),
+          reps: Number(exercise.reps),
+          weight: Number(exercise.weight),
+          rpe: Number(exercise.rpe),
+        })),
+      main: formData
+        .filter((e) => e.section === "main")
+        .map((exercise) => ({
+          ...exercise,
+          sets: Number(exercise.sets),
+          reps: Number(exercise.reps),
+          weight: Number(exercise.weight),
+          rpe: Number(exercise.rpe),
+        })),
+      cooldown: formData
+        .filter((e) => e.section === "cooldown")
+        .map((exercise) => ({
+          ...exercise,
+          sets: Number(exercise.sets),
+          reps: Number(exercise.reps),
+          weight: Number(exercise.weight),
+          rpe: Number(exercise.rpe),
+        })),
+    };
 
     if (log?.id) {
       const { error } = await supabase
@@ -150,6 +177,7 @@ export default function LogWorkoutView() {
       if (error) {
         console.error("Error updating workout:", error);
       } else {
+        showToast("Workout updated successfully! 🎉");
         if (selectedDate) {
           navigate(`/summary/${selectedDate}`);
         } else {
@@ -160,11 +188,7 @@ export default function LogWorkoutView() {
       const { error } = await supabase.from("workout_logs").insert([
         {
           date: selectedDate,
-          exercises: {
-            warmup: updatedExercises.filter((e) => e.section === "warmup"),
-            main: updatedExercises.filter((e) => e.section === "main"),
-            cooldown: updatedExercises.filter((e) => e.section === "cooldown"),
-          },
+          exercises: updatedExercises,
           forecast: false,
           muscle_group: log?.muscle_group || "",
           day: log?.day || getWeekday(selectedDate),
@@ -174,6 +198,7 @@ export default function LogWorkoutView() {
       if (error) {
         console.error("Error inserting workout:", error);
       } else {
+        showToast("Workout logged successfully! 🚀");
         if (selectedDate) {
           navigate(`/summary/${selectedDate}`);
         } else {
@@ -192,18 +217,18 @@ export default function LogWorkoutView() {
   return (
     <div className="min-h-screen bg-[#242B2F] text-white p-4 max-w-3xl mx-auto">
       {!log?.forecast && (
-        <div className="text-center bg-gradient-to-r from-pink-500 to-pink-700 text-white py-2 rounded mb-4 animate-pulse">
+        <motion.div
+          initial={{ y: -20, opacity: 0 }}
+          animate={{ y: 0, opacity: 1 }}
+          transition={{ duration: 0.5, ease: "easeOut" }}
+          className="text-center bg-gradient-to-r from-pink-500 to-pink-700 text-white py-3 px-4 rounded-md mb-6 shadow-md"
+        >
           🚀 Mission Started! Crush today's workout!
-        </div>
+        </motion.div>
       )}
       <div className="sticky top-0 z-10 bg-[#242B2F] pt-4 pb-2">
-        <div className="flex justify-between items-center mb-4">
-          <button
-            onClick={() => navigate(-1)}
-            className="text-sm border border-white px-3 py-1 rounded hover:bg-white/10"
-          >
-            ← Back
-          </button>
+        <div className="flex justify-between items-center mb-4 flex-wrap gap-3">
+          <BackButton />
           <h1 className="text-xl font-bold">
             Log Workout for {formatDateWithOptions(selectedDate)}
           </h1>

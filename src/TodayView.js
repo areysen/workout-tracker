@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { fetchWorkoutLogs } from "./supabaseClient";
 import { getToday, formatDateWithOptions } from "./utils";
+import crunchBarcode from "./assets/AP659Image.jpg";
 
 // --- CoachBot Tips utility ---
 const coachBotTips = {
@@ -57,6 +58,7 @@ export default function TodayView() {
   const [todayLog, setTodayLog] = useState(null);
   const [loading, setLoading] = useState(true);
   const [showChat, setShowChat] = useState(false);
+  const [showBarcode, setShowBarcode] = useState(false);
   const navigate = useNavigate();
 
   const today = getToday();
@@ -161,6 +163,24 @@ export default function TodayView() {
       </div>
 
       <div className="mt-6 p-4 bg-[#2E353A] rounded-lg border border-[#C63663]">
+        <h2 className="text-lg font-bold mb-2 text-pink-400">⚡ Shortcuts</h2>
+        <div className="flex flex-col gap-3">
+          <button
+            onClick={() => setShowBarcode(true)}
+            className="bg-gradient-to-r from-pink-500 to-pink-700 text-white py-2 px-4 rounded font-semibold hover:opacity-90 transition"
+          >
+            🎟️ Crunch Barcode
+          </button>
+          <button
+            onClick={() => (window.location.href = "macrofactor://")}
+            className="bg-[#343E44] text-white py-2 px-4 rounded font-semibold hover:bg-gray-700 transition"
+          >
+            📊 Open MacroFactor
+          </button>
+        </div>
+      </div>
+
+      <div className="mt-6 p-4 bg-[#2E353A] rounded-lg border border-[#C63663]">
         <h2 className="text-lg font-bold mb-2 text-pink-400">
           🤖 CoachBot Tip
         </h2>
@@ -175,6 +195,27 @@ export default function TodayView() {
           </p>
         )}
       </div>
+
+      {showBarcode && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-80">
+          <div className="bg-[#1F262C] p-4 rounded-lg shadow-lg max-w-sm w-full text-center">
+            <h2 className="text-lg font-semibold text-pink-400 mb-2">
+              🎟️ Crunch Barcode
+            </h2>
+            <img
+              src={crunchBarcode}
+              alt="Crunch Membership Barcode"
+              className="mx-auto mb-4 rounded"
+            />
+            <button
+              onClick={() => setShowBarcode(false)}
+              className="bg-pink-600 hover:bg-pink-700 text-white px-4 py-2 rounded"
+            >
+              Close
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

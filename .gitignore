@@ -1,5 +1,27 @@
-node_modules/
 .cache/
 .eslintcache
 .DS_Store
 repo-structure.txt
+
+# dependencies
+/node_modules
+
+# builds
+/build
+/dist
+
+# Capacitor native projects
+/android
+/ios
+
+# capacitor config
+/capacitor.config.ts
+
+# misc
+/.DS_Store
+
+# testing / coverage
+/coverage
+
+# local environment settings
+.env

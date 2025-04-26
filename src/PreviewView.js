@@ -158,6 +158,8 @@ function PreviewView() {
         <div className="mt-8 flex flex-col gap-4">
           <Link
             to={`/log/${date}`}
+            replace
+            state={{ fromPreview: true, previousSelectedDate: date }}
             className="bg-[#C63663] text-white px-6 py-3 rounded-xl shadow hover:brightness-110 transition w-full text-center"
           >
             Start Workout

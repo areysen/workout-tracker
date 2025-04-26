@@ -21,7 +21,6 @@ import { useToast } from "./components/ToastContext";
 import { motion, AnimatePresence } from "framer-motion";
 import { supabase } from "./supabaseClient";
 import {
-  getToday,
   formatDateWithOptions,
   formatDateForDisplay,
   getWeekday,
@@ -40,6 +39,7 @@ export default function CalendarView() {
   const [selectedDate, setSelectedDate] = useState(today);
   const [workoutLogs, setWorkoutLogs] = useState([]);
   const [workoutTemplates, setWorkoutTemplates] = useState([]);
+  const [loading, setLoading] = useState(true);
 
   const currentWeekStart = startOfWeek(selectedDate, { weekStartsOn: 1 });
   const currentMonth = new Date(getYear(selectedDate), getMonth(selectedDate));
@@ -143,9 +143,19 @@ export default function CalendarView() {
       setWorkoutTemplates(data);
     }
   }
+  async function fetchCalendarData() {
+    setLoading(true);
+
+    const simulateSlowNetwork = true;
+    if (simulateSlowNetwork) {
+      await new Promise((resolve) => setTimeout(resolve, 150));
+    }
+
+    await Promise.all([fetchWorkoutLogs(), fetchWorkoutTemplates()]);
+    setLoading(false);
+  }
   useEffect(() => {
-    fetchWorkoutLogs();
-    fetchWorkoutTemplates();
+    fetchCalendarData();
   }, []);
 
   // New useEffect for delayed refresh after undo timer (delete)
@@ -192,7 +202,7 @@ export default function CalendarView() {
           previousSelectedDate: selectedDate.toISOString(),
         },
       });
-    } else if (!log && isBefore(date, today)) {
+    } else if (!log && isBefore(date, today) && !isToday(date)) {
       navigate("/summary/" + formatted, {
         state: {
           previousViewMode: viewMode,
@@ -246,12 +256,7 @@ export default function CalendarView() {
     <div className="sticky top-0 z-10 bg-[#242B2F] pt-4 pb-2">
       <div className="flex justify-between items-start mb-4 flex-wrap gap-2 sm:flex-nowrap">
         <div className="flex items-center gap-2">
-          <button
-            onClick={() => navigate("/")}
-            className="text-sm border border-white px-3 py-1 rounded hover:bg-white/10"
-          >
-            Home
-          </button>
+          <BackButton to="/" label="Home" />
         </div>
 
         {viewMode !== "year" && (
@@ -345,7 +350,7 @@ export default function CalendarView() {
             forecastLabel = "✓";
           } else if (log?.forecast) {
             forecastLabel = "🏋️ ";
-          } else if (!log && isBefore(date, today)) {
+          } else if (!log && isBefore(date, today) && !isToday(date)) {
             forecastLabel = "❓";
           } else {
             const weekday = getWeekday(date).toLowerCase().trim();
@@ -429,7 +434,7 @@ export default function CalendarView() {
               forecastLabel = "✓ Logged";
             } else if (log && log.forecast) {
               forecastLabel = `🏋️ ${log.muscle_group || log.workout_name}`;
-            } else if (!log && isBefore(date, today)) {
+            } else if (!log && isBefore(date, today) && !isToday(date)) {
               forecastLabel = "❓ Not logged";
             } else {
               const weekday = getWeekday(date).toLowerCase().trim();
@@ -476,23 +481,36 @@ export default function CalendarView() {
   return (
     <div className="min-h-screen bg-[#242B2F] text-white p-4 max-w-3xl mx-auto">
       {renderControls()}
-      <div className="space-y-6 mt-2">
-        {viewMode === "month"
-          ? renderGridDays(daysThisMonth)
-          : viewMode === "week"
-          ? renderStackedDays(daysThisWeek)
-          : Object.entries(groupedByMonth).map(([month, dates]) => (
-              <div key={month} ref={(el) => (monthRefs.current[month] = el)}>
-                <h2 className="text-lg font-semibold text-[#C63663] mb-2">
-                  {new Date(`${month} 1`).toLocaleDateString("en-US", {
-                    month: "long",
-                    year: "numeric",
-                  })}
-                </h2>
-                {renderGridDays(dates)}
-              </div>
-            ))}
-      </div>
+      {loading ? (
+        <div className="space-y-4 mt-6">
+          {Array.from({ length: viewMode === "week" ? 7 : 21 }).map(
+            (_, idx) => (
+              <div
+                key={idx}
+                className="h-20 rounded-lg bg-[#343E44] animate-pulse"
+              ></div>
+            )
+          )}
+        </div>
+      ) : (
+        <div className="space-y-6 mt-2">
+          {viewMode === "month"
+            ? renderGridDays(daysThisMonth)
+            : viewMode === "week"
+            ? renderStackedDays(daysThisWeek)
+            : Object.entries(groupedByMonth).map(([month, dates]) => (
+                <div key={month} ref={(el) => (monthRefs.current[month] = el)}>
+                  <h2 className="text-lg font-semibold text-[#C63663] mb-2">
+                    {new Date(`${month} 1`).toLocaleDateString("en-US", {
+                      month: "long",
+                      year: "numeric",
+                    })}
+                  </h2>
+                  {renderGridDays(dates)}
+                </div>
+              ))}
+        </div>
+      )}
     </div>
   );
 }

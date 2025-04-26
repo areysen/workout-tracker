@@ -1,5 +1,10 @@
 import React, { useEffect, useState } from "react";
-import { useSearchParams, useNavigate, useParams } from "react-router-dom";
+import {
+  useSearchParams,
+  useNavigate,
+  useParams,
+  useLocation,
+} from "react-router-dom";
 import { supabase } from "./supabaseClient";
 import { getToday, formatDateWithOptions, getWeekday } from "./utils";
 import BackButton from "./components/BackButton";
@@ -11,6 +16,7 @@ export default function LogWorkoutView() {
   const [searchParams] = useSearchParams();
   const { date: selectedDate } = useParams();
   const navigate = useNavigate();
+  const location = useLocation();
   const [log, setLog] = useState(null);
   const [loading, setLoading] = useState(true);
   const [formData, setFormData] = useState([]);
@@ -179,7 +185,14 @@ export default function LogWorkoutView() {
       } else {
         showToast("Workout updated successfully! 🎉");
         if (selectedDate) {
-          navigate(`/summary/${selectedDate}`);
+          navigate(`/summary/${selectedDate}`, {
+            state: {
+              previousViewMode: location.state?.previousViewMode,
+              previousSelectedDate: location.state?.previousSelectedDate,
+              fromPreview: location.state?.fromPreview,
+            },
+            replace: true,
+          });
         } else {
           navigate("/summary");
         }
@@ -200,7 +213,14 @@ export default function LogWorkoutView() {
       } else {
         showToast("Workout logged successfully! 🚀");
         if (selectedDate) {
-          navigate(`/summary/${selectedDate}`);
+          navigate(`/summary/${selectedDate}`, {
+            state: {
+              previousViewMode: location.state?.previousViewMode,
+              previousSelectedDate: location.state?.previousSelectedDate,
+              fromPreview: location.state?.fromPreview,
+            },
+            replace: true,
+          });
         } else {
           navigate("/summary");
         }
@@ -286,7 +306,8 @@ export default function LogWorkoutView() {
                       </div>
                       {section === "main" && (
                         <div className="flex flex-wrap gap-4 text-sm">
-                          {exercise.sets && (
+                          {/* Show Sets input if exercise expects sets (for weighted or rep-based) */}
+                          {(exercise.weighted || exercise.reps !== "") && (
                             <div className="flex-1 min-w-[100px] flex flex-col">
                               <label className="text-xs text-gray-400 mb-1">
                                 Sets
@@ -308,7 +329,8 @@ export default function LogWorkoutView() {
                             </div>
                           )}
 
-                          {exercise.reps && (
+                          {/* Show Reps input if exercise expects reps */}
+                          {(exercise.weighted || exercise.reps !== "") && (
                             <div className="flex-1 min-w-[100px] flex flex-col">
                               <label className="text-xs text-gray-400 mb-1">
                                 Reps
@@ -330,115 +352,108 @@ export default function LogWorkoutView() {
                             </div>
                           )}
 
+                          {/* Show Weight input if exercise is weighted */}
                           {section === "main" && exercise.weighted && (
-                            <>
-                              <div className="flex-1 min-w-[100px] flex flex-col">
-                                <label className="text-xs text-gray-400 mb-1">
-                                  Weight
-                                </label>
-                                <input
-                                  type="number"
-                                  inputMode="numeric"
-                                  pattern="[0-9]*"
-                                  className="p-2 rounded bg-transparent border border-[#818C91] text-white text-base"
-                                  value={exercise.weight}
-                                  onChange={(e) =>
-                                    handleChange(
-                                      formData.indexOf(exercise),
-                                      "weight",
-                                      e.target.value
-                                    )
-                                  }
-                                />
-                              </div>
-                            </>
+                            <div className="flex-1 min-w-[100px] flex flex-col">
+                              <label className="text-xs text-gray-400 mb-1">
+                                Weight
+                              </label>
+                              <input
+                                type="number"
+                                inputMode="numeric"
+                                pattern="[0-9]*"
+                                className="p-2 rounded bg-transparent border border-[#818C91] text-white text-base"
+                                value={exercise.weight}
+                                onChange={(e) =>
+                                  handleChange(
+                                    formData.indexOf(exercise),
+                                    "weight",
+                                    e.target.value
+                                  )
+                                }
+                              />
+                            </div>
                           )}
 
-                          {section === "main" &&
-                            exercise.timed &&
-                            exercise.duration && (
-                              <div className="flex-1 min-w-[100px] flex flex-col">
-                                <label className="text-xs text-gray-400 mb-1">
-                                  Duration
-                                </label>
-                                <input
-                                  type="text"
-                                  className="p-2 rounded bg-transparent border border-[#818C91] text-white text-base"
-                                  value={exercise.duration}
-                                  onChange={(e) =>
-                                    handleChange(
-                                      formData.indexOf(exercise),
-                                      "duration",
-                                      e.target.value
-                                    )
-                                  }
-                                />
-                              </div>
-                            )}
+                          {/* Show Duration input if exercise is timed */}
+                          {section === "main" && exercise.timed && (
+                            <div className="flex-1 min-w-[100px] flex flex-col">
+                              <label className="text-xs text-gray-400 mb-1">
+                                Duration
+                              </label>
+                              <input
+                                type="text"
+                                className="p-2 rounded bg-transparent border border-[#818C91] text-white text-base"
+                                value={exercise.duration}
+                                onChange={(e) =>
+                                  handleChange(
+                                    formData.indexOf(exercise),
+                                    "duration",
+                                    e.target.value
+                                  )
+                                }
+                              />
+                            </div>
+                          )}
 
+                          {/* Show Rounds/Work/Rest if exercise is cardio or HIIT */}
                           {section === "main" &&
                             (exercise.cardio ||
                               exercise.subtype === "hiit") && (
                               <>
-                                {exercise.rounds && (
-                                  <div className="flex-1 min-w-[100px] flex flex-col">
-                                    <label className="text-xs text-gray-400 mb-1">
-                                      Rounds
-                                    </label>
-                                    <input
-                                      type="number"
-                                      inputMode="numeric"
-                                      pattern="[0-9]*"
-                                      className="p-2 rounded bg-transparent border border-[#818C91] text-white text-base"
-                                      value={exercise.rounds}
-                                      onChange={(e) =>
-                                        handleChange(
-                                          formData.indexOf(exercise),
-                                          "rounds",
-                                          e.target.value
-                                        )
-                                      }
-                                    />
-                                  </div>
-                                )}
-                                {exercise.work && (
-                                  <div className="flex-1 min-w-[100px] flex flex-col">
-                                    <label className="text-xs text-gray-400 mb-1">
-                                      Work
-                                    </label>
-                                    <input
-                                      type="text"
-                                      className="p-2 rounded bg-transparent border border-[#818C91] text-white text-base"
-                                      value={exercise.work}
-                                      onChange={(e) =>
-                                        handleChange(
-                                          formData.indexOf(exercise),
-                                          "work",
-                                          e.target.value
-                                        )
-                                      }
-                                    />
-                                  </div>
-                                )}
-                                {exercise.rest && (
-                                  <div className="flex-1 min-w-[100px] flex flex-col">
-                                    <label className="text-xs text-gray-400 mb-1">
-                                      Rest
-                                    </label>
-                                    <input
-                                      type="text"
-                                      className="p-2 rounded bg-transparent border border-[#818C91] text-white text-base"
-                                      value={exercise.rest}
-                                      onChange={(e) =>
-                                        handleChange(
-                                          formData.indexOf(exercise),
-                                          "rest",
-                                          e.target.value
-                                        )
-                                      }
-                                    />
-                                  </div>
-                                )}
+                                <div className="flex-1 min-w-[100px] flex flex-col">
+                                  <label className="text-xs text-gray-400 mb-1">
+                                    Rounds
+                                  </label>
+                                  <input
+                                    type="number"
+                                    inputMode="numeric"
+                                    pattern="[0-9]*"
+                                    className="p-2 rounded bg-transparent border border-[#818C91] text-white text-base"
+                                    value={exercise.rounds}
+                                    onChange={(e) =>
+                                      handleChange(
+                                        formData.indexOf(exercise),
+                                        "rounds",
+                                        e.target.value
+                                      )
+                                    }
+                                  />
+                                </div>
+                                <div className="flex-1 min-w-[100px] flex flex-col">
+                                  <label className="text-xs text-gray-400 mb-1">
+                                    Work
+                                  </label>
+                                  <input
+                                    type="text"
+                                    className="p-2 rounded bg-transparent border border-[#818C91] text-white text-base"
+                                    value={exercise.work}
+                                    onChange={(e) =>
+                                      handleChange(
+                                        formData.indexOf(exercise),
+                                        "work",
+                                        e.target.value
+                                      )
+                                    }
+                                  />
+                                </div>
+                                <div className="flex-1 min-w-[100px] flex flex-col">
+                                  <label className="text-xs text-gray-400 mb-1">
+                                    Rest
+                                  </label>
+                                  <input
+                                    type="text"
+                                    className="p-2 rounded bg-transparent border border-[#818C91] text-white text-base"
+                                    value={exercise.rest}
+                                    onChange={(e) =>
+                                      handleChange(
+                                        formData.indexOf(exercise),
+                                        "rest",
+                                        e.target.value
+                                      )
+                                    }
+                                  />
+                                </div>
                               </>
                             )}
                         </div>

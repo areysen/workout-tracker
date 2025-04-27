@@ -17,6 +17,20 @@ export default function SummaryView() {
   const [logEntry, setLogEntry] = useState(null);
   const [confirmOpen, setConfirmOpen] = useState(false);
   const undoTimer = useRef(null);
+  const [scrolled, setScrolled] = useState(false);
+
+  useEffect(() => {
+    const handleScroll = () => {
+      if (window.scrollY > 10) {
+        setScrolled(true);
+      } else {
+        setScrolled(false);
+      }
+    };
+
+    window.addEventListener("scroll", handleScroll);
+    return () => window.removeEventListener("scroll", handleScroll);
+  }, []);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -40,7 +54,7 @@ export default function SummaryView() {
   };
 
   const handleDelete = async () => {
-    showToast("Workout deleted! ✨", {
+    showToast("Workout deleted! ✨", "error", {
       showUndo: true,
       onUndo: undoDelete,
     });
@@ -66,10 +80,12 @@ export default function SummaryView() {
   return (
     <div className="min-h-screen bg-[#242B2F] text-white p-4 max-w-3xl mx-auto">
       <div
-        className="sticky top-0 z-10 bg-[#242B2F]"
-        style={{ paddingTop: "env(safe-area-inset-top)" }}
+        className="sticky top-0 z-10 bg-[#242B2F] pb-4"
+        style={{
+          paddingTop: scrolled ? "env(safe-area-inset-top)" : "0px",
+        }}
       >
-        <div className="flex justify-between items-center pt-4 pb-2 mb-4 flex-wrap gap-3">
+        <div className="flex justify-between items-center flex-wrap gap-3">
           <BackButton />
           <h1 className="text-xl font-bold">
             Summary for {formatDateWithOptions(date)}
@@ -145,12 +161,14 @@ export default function SummaryView() {
         <>
           <div className="pb-32" />
           <div className="fixed bottom-0 left-0 w-full bg-[#242B2F] p-4 space-y-3 z-10 max-w-3xl mx-auto">
-            <button
-              onClick={() => navigate(`/log/${date}`)}
-              className="w-full bg-white text-[#242B2F] font-bold py-2 px-4 rounded hover:brightness-110"
-            >
-              Edit Workout
-            </button>
+            {date === today && (
+              <button
+                onClick={() => navigate("/log")}
+                className="w-full bg-white text-[#242B2F] font-bold py-2 px-4 rounded hover:brightness-110"
+              >
+                Edit Workout
+              </button>
+            )}
             <button
               onClick={() => setConfirmOpen(true)}
               className="w-full bg-gradient-to-br from-pink-600 to-red-600 text-white font-bold py-2 px-4 rounded hover:brightness-110 transition"

@@ -1,7 +1,17 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { fetchWorkoutLogs } from "./supabaseClient";
-import { getToday, formatDateWithOptions } from "./utils";
+import {
+  fetchWorkoutLogs,
+  fetchWorkoutLogsForLastNDays,
+  computeCurrentStreak,
+  computeBestStreak,
+} from "./supabaseClient";
+import { getToday, getWeekday, formatDateWithOptions } from "./utils";
+import ConfirmModal from "./components/ConfirmModal";
+import { useToast } from "./components/ToastContext";
+import CrunchBarcode from "./assets/CrunchBarcode.png";
+import CrunchIcon from "./assets/CrunchIcon.png";
+import MacroFactorIcon from "./assets/MacroFactorIcon.png";
 
 // --- CoachBot Tips utility ---
 const coachBotTips = {
@@ -57,45 +67,73 @@ export default function TodayView() {
   const [todayLog, setTodayLog] = useState(null);
   const [loading, setLoading] = useState(true);
   const [showChat, setShowChat] = useState(false);
+  const [showConfirmSkip, setShowConfirmSkip] = useState(false);
+  const [showBarcodeModal, setShowBarcodeModal] = useState(false);
+  const [currentStreak, setCurrentStreak] = useState(0);
+  const [bestStreak, setBestStreak] = useState(0);
   const navigate = useNavigate();
-
+  const { showToast } = useToast();
   const today = getToday();
   const formattedDate = formatDateWithOptions(today, { weekday: "long" });
 
-  useEffect(() => {
-    async function load() {
-      setLoading(true);
-      const logs = await fetchWorkoutLogs();
-      let todayMatch = logs.find((log) => log.date === today);
+  // Function to open MacroFactor app or fallback to App Store
+  const openMacroFactor = () => {
+    // Try to open the MacroFactor app; if it fails, redirect to App Store
+    const fallback = setTimeout(() => {
+      window.location.href =
+        "https://apps.apple.com/us/app/macrofactor-macro-tracker/id1553503471";
+    }, 700);
+    window.location.href = "macrofactor://";
+    // Optional: clear the fallback if the app opens (not always detectable in web)
+  };
 
-      if (!todayMatch) {
-        // No log found, fetch from workout_templates
-        const localDate = new Date();
-        const weekday = localDate
-          .toLocaleDateString("en-US", { weekday: "long" })
-          .toLowerCase();
-        // Import supabase directly here
-        const { supabase } = await import("./supabaseClient");
-        const { data: templates, error } = await supabase
-          .from("workout_templates")
-          .select("workout_name, exercises, muscle_group")
-          .eq("day_of_week", weekday);
+  // Load today's workout log or forecast
+  const loadToday = async () => {
+    setLoading(true);
+    const logs = await fetchWorkoutLogs();
+    let todayMatch = logs.find((log) => log.date === today);
 
-        if (templates && templates.length > 0) {
-          todayMatch = {
-            date: today,
-            forecast: true,
-            muscle_group: templates[0].muscle_group,
-            workout_name: templates[0].workout_name,
-          };
-        }
+    if (!todayMatch) {
+      const localDate = new Date();
+      const weekday = localDate
+        .toLocaleDateString("en-US", { weekday: "long" })
+        .toLowerCase();
+      const { supabase } = await import("./supabaseClient");
+      const { data: templates, error: tplError } = await supabase
+        .from("workout_templates")
+        .select("workout_name, exercises, muscle_group")
+        .eq("day_of_week", weekday);
+
+      if (!tplError && templates && templates.length > 0) {
+        todayMatch = {
+          date: today,
+          forecast: true,
+          muscle_group: templates[0].muscle_group,
+          workout_name: templates[0].workout_name,
+        };
       }
-
-      setTodayLog(todayMatch || null);
-      setLoading(false);
     }
-    load();
+
+    setTodayLog(todayMatch || null);
+    setLoading(false);
+  };
+
+  useEffect(() => {
+    loadToday();
   }, [today]);
+
+  useEffect(() => {
+    async function loadStreak() {
+      const logs = await fetchWorkoutLogsForLastNDays(30);
+      const streak = computeCurrentStreak(logs);
+      setCurrentStreak(streak);
+      // Fetch all logs and compute best streak
+      const allLogs = await fetchWorkoutLogs();
+      const best = computeBestStreak(allLogs);
+      setBestStreak(best);
+    }
+    loadStreak();
+  }, []);
 
   return (
     <div className="min-h-screen bg-[#242B2F] p-4 max-w-3xl mx-auto text-white">
@@ -110,39 +148,58 @@ export default function TodayView() {
         todayLog && (
           <div className="bg-[#2E353A] p-4 rounded-lg mb-6 border border-[#C63663]">
             <h2 className="text-xl font-bold mb-2 text-pink-400">
-              🎯 Mission of the Day
+              {todayLog.skipped ? "🏖️ Recovery Day" : "🎯 Mission of the Day"}
             </h2>
             <p className="text-lg">
               {todayLog.skipped
-                ? `Workout Skipped: ${todayLog.workout_name || "Workout"}`
+                ? `Workout Skipped: ${todayLog.muscle_group || "Workout"}`
                 : todayLog.forecast
                 ? `Planned Workout: ${todayLog.workout_name || "Workout"}`
-                : `Completed Workout: ${todayLog.workout_name || "Workout"}`}
+                : `Completed Workout: ${todayLog.muscle_group || "Workout"}`}
             </p>
           </div>
         )
       )}
 
       <div className="flex flex-col gap-4 mb-6">
-        <button
-          className="bg-gradient-to-r from-pink-500 to-pink-700 text-white py-3 px-6 rounded font-bold text-lg hover:opacity-90 transition"
-          onClick={() =>
-            navigate(
-              todayLog?.skipped
-                ? `/summary/${today}`
-                : todayLog?.forecast
-                ? `/log/${today}`
-                : `/summary/${today}`,
-              { state: { fromTodayView: true } }
-            )
-          }
-        >
-          {todayLog?.skipped
-            ? "View Summary"
-            : todayLog?.forecast
-            ? "Start Workout"
-            : "View Summary"}
-        </button>
+        {todayLog?.skipped ? (
+          <button
+            disabled
+            className="bg-gray-600 text-white py-3 px-6 rounded font-bold text-lg cursor-not-allowed text-center"
+          >
+            Skipped
+          </button>
+        ) : todayLog?.forecast ? (
+          <>
+            <button
+              className="bg-gradient-to-r from-pink-500 to-pink-700 text-white py-3 px-6 rounded font-bold text-lg hover:opacity-90 transition"
+              onClick={() =>
+                navigate("/log", { state: { fromTodayView: true } })
+              }
+            >
+              Start Workout
+            </button>
+            <button
+              className="bg-gradient-to-r from-pink-600 to-red-600 text-white py-3 px-6 rounded font-bold text-lg hover:opacity-90 transition"
+              onClick={() => setShowConfirmSkip(true)}
+            >
+              Skip Day
+            </button>
+          </>
+        ) : (
+          <>
+            <button
+              className="bg-gradient-to-r from-pink-500 to-pink-700 text-white py-3 px-6 rounded font-bold text-lg hover:opacity-90 transition"
+              onClick={() =>
+                navigate(`/summary/${today}`, {
+                  state: { fromTodayView: true },
+                })
+              }
+            >
+              View Summary
+            </button>
+          </>
+        )}
         <button
           className="bg-[#343E44] text-white py-2 px-4 rounded font-semibold hover:bg-gray-700 transition"
           onClick={() => navigate("/calendar")}
@@ -153,24 +210,48 @@ export default function TodayView() {
 
       <div className="bg-[#2E353A] p-4 rounded-lg mb-6 border border-gray-600">
         <h2 className="text-lg font-semibold mb-2 text-gray-300">
-          🔥 Your Progress
+          📈 Your Progress
         </h2>
-        <p className="text-gray-400 text-sm">
-          ✅ Stay consistent and build your streak!
+        <p className="text-gray-200">
+          🔥 Current Streak:{" "}
+          <span className="font-bold">{currentStreak} days</span>
         </p>
+        {bestStreak > 0 && (
+          <p className="text-gray-200 mt-1">
+            🏆 Best Streak: <span className="font-bold">{bestStreak} days</span>
+          </p>
+        )}
       </div>
 
       <div className="mt-6 p-4 bg-[#2E353A] rounded-lg border border-[#C63663]">
         <h2 className="text-lg font-bold mb-2 text-pink-400">⚡ Shortcuts</h2>
         <div className="flex flex-col gap-3">
-          <button className="bg-gradient-to-r from-pink-500 to-pink-700 text-white py-2 px-4 rounded font-semibold hover:opacity-90 transition">
-            🎟️ Crunch Barcode
+          <button
+            className="flex items-center justify-center bg-gradient-to-r from-pink-500 to-pink-700 text-white py-2 px-4 rounded font-semibold hover:opacity-90 transition"
+            onClick={() => setShowBarcodeModal(true)}
+          >
+            <img src={CrunchIcon} alt="Crunch" className="h-5 w-5 mr-2" />
+            <span>Crunch Barcode</span>
           </button>
           <button
-            onClick={() => (window.location.href = "macrofactor://")}
-            className="bg-[#343E44] text-white py-2 px-4 rounded font-semibold hover:bg-gray-700 transition"
+            onClick={() =>
+              (window.location.href =
+                "shortcuts://run-shortcut?name=Open%20MacroFactor")
+            }
+            className="flex items-center justify-center bg-[#343E44] text-white py-2 px-4 rounded font-semibold hover:bg-gray-700 transition"
           >
-            📊 Open MacroFactor
+            <img
+              src={MacroFactorIcon}
+              alt="MacroFactor"
+              className="h-5 w-5 mr-2"
+            />
+            <span>Open MacroFactor</span>
+          </button>
+          <button
+            onClick={() => navigate("/templates")}
+            className="bg-[#4A5568] text-white py-2 px-4 rounded font-semibold hover:bg-gray-700 transition text-center"
+          >
+            🗂 Templates
           </button>
         </div>
       </div>
@@ -190,6 +271,50 @@ export default function TodayView() {
           </p>
         )}
       </div>
+
+      <ConfirmModal
+        isOpen={showConfirmSkip}
+        message="Are you sure you want to skip today's workout?"
+        onCancel={() => setShowConfirmSkip(false)}
+        onConfirm={async () => {
+          setShowConfirmSkip(false);
+          const { supabase } = await import("./supabaseClient");
+          const { error } = await supabase.from("workout_logs").insert([
+            {
+              date: today,
+              forecast: false,
+              skipped: true,
+              muscle_group: todayLog?.workout_name || "",
+              day: getWeekday(today),
+            },
+          ]);
+
+          if (error) {
+            console.error("Error skipping workout:", error);
+            showToast("Failed to skip workout. Please try again.", "error");
+          } else {
+            showToast("Workout skipped!", "error");
+            const logs = await fetchWorkoutLogs();
+            let todayMatch = logs.find((log) => log.date === today);
+            setTodayLog(todayMatch || null);
+          }
+        }}
+      />
+      {showBarcodeModal && (
+        <div
+          className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-75 z-50"
+          onClick={() => setShowBarcodeModal(false)}
+        >
+          <div className="bg-white px-2 py-4 rounded-lg overflow-hidden w-[95vw] max-w-none">
+            <img
+              src={CrunchBarcode}
+              alt="Crunch Membership Barcode"
+              className="w-full h-auto cursor-pointer"
+              onClick={() => setShowBarcodeModal(false)}
+            />
+          </div>
+        </div>
+      )}
     </div>
   );
 }

@@ -93,7 +93,9 @@ function PreviewView() {
           setLogForDate(null);
         }
       }
-      setLoading(false);
+      setTimeout(() => {
+        setLoading(false);
+      }, 250);
     }
 
     fetchWorkoutLog();
@@ -135,7 +137,13 @@ function PreviewView() {
   const dayName = logForDate?.date
     ? formatDateWithOptions(logForDate.date, { weekday: "long" })
     : "";
-
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-[#242B2F] text-white flex items-center justify-center">
+        <p className="text-pink-400 text-lg">Loading preview...</p>
+      </div>
+    );
+  }
   return (
     <div className="min-h-screen bg-[#242B2F] text-white p-4 max-w-3xl mx-auto">
       <div
@@ -245,7 +253,7 @@ function PreviewView() {
               onClick={() => setShowConfirmSkip(true)}
               className="w-full bg-gradient-to-br from-pink-600 to-red-600 text-white font-bold py-2 px-4 rounded hover:brightness-110 transition text-center"
             >
-              Skip Day
+              Skip Today
             </button>
           ) : todaySkipped ? (
             <button

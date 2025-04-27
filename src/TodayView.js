@@ -183,7 +183,7 @@ export default function TodayView() {
               className="bg-gradient-to-r from-pink-600 to-red-600 text-white py-3 px-6 rounded font-bold text-lg hover:opacity-90 transition"
               onClick={() => setShowConfirmSkip(true)}
             >
-              Skip Day
+              Skip Today
             </button>
           </>
         ) : (

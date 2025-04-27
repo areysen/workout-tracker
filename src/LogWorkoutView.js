@@ -133,7 +133,20 @@ export default function LogWorkoutView() {
     }
     fetchWorkout();
   }, [today, templateId]);
+  const [scrolled, setScrolled] = useState(false);
 
+  useEffect(() => {
+    const handleScroll = () => {
+      if (window.scrollY > 10) {
+        setScrolled(true);
+      } else {
+        setScrolled(false);
+      }
+    };
+
+    window.addEventListener("scroll", handleScroll);
+    return () => window.removeEventListener("scroll", handleScroll);
+  }, []);
   // Template loading effect
   useEffect(() => {
     if (!templateId) return;
@@ -272,7 +285,12 @@ export default function LogWorkoutView() {
 
   return (
     <div className="min-h-screen bg-[#242B2F] text-white p-4 max-w-3xl mx-auto">
-      <div className="sticky top-0 z-10 bg-[#242B2F] pt-[env(safe-area-inset-top)] pb-2">
+      <div
+        className="sticky top-0 z-10 bg-[#242B2F] pb-4"
+        style={{
+          paddingTop: scrolled ? "env(safe-area-inset-top)" : "0px",
+        }}
+      >
         <div className="flex justify-between items-center mb-4 flex-wrap gap-3">
           <BackButton />
           <h1 className="text-xl font-bold">

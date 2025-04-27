@@ -34,7 +34,20 @@ export default function CalendarView() {
   const todayRef = useRef(null);
   const monthRefs = useRef({});
   const location = useLocation();
+  const [scrolled, setScrolled] = useState(false);
 
+  useEffect(() => {
+    const handleScroll = () => {
+      if (window.scrollY > 10) {
+        setScrolled(true);
+      } else {
+        setScrolled(false);
+      }
+    };
+
+    window.addEventListener("scroll", handleScroll);
+    return () => window.removeEventListener("scroll", handleScroll);
+  }, []);
   const [viewMode, setViewMode] = useState("week");
   const [selectedDate, setSelectedDate] = useState(today);
   const [workoutLogs, setWorkoutLogs] = useState([]);
@@ -254,10 +267,12 @@ export default function CalendarView() {
 
   const renderControls = () => (
     <div
-      className="sticky top-0 z-10 bg-[#242B2F]"
-      style={{ paddingTop: "env(safe-area-inset-top)" }}
+      className="sticky top-0 z-10 bg-[#242B2F] pb-4"
+      style={{
+        paddingTop: scrolled ? "env(safe-area-inset-top)" : "0px",
+      }}
     >
-      <div className="flex justify-between items-start pt-4 pb-2 mb-4 flex-wrap gap-2 sm:flex-nowrap">
+      <div className="flex justify-between items-start pt-4 pb-2 flex-wrap gap-2 sm:flex-nowrap">
         <div className="flex items-center gap-2">
           <BackButton to="/" label="Home" />
         </div>

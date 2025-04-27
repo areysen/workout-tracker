@@ -1,33 +1,30 @@
 import React, { useEffect, useState } from "react";
-import {
-  useSearchParams,
-  useNavigate,
-  useParams,
-  useLocation,
-} from "react-router-dom";
+import { useSearchParams, useNavigate, useLocation } from "react-router-dom";
 import { supabase } from "./supabaseClient";
 import { getToday, formatDateWithOptions, getWeekday } from "./utils";
 import BackButton from "./components/BackButton";
 import { motion } from "framer-motion";
-
 import { useToast } from "./components/ToastContext";
 
 export default function LogWorkoutView() {
   const [searchParams] = useSearchParams();
-  const { date: selectedDate } = useParams();
   const navigate = useNavigate();
   const location = useLocation();
   const [log, setLog] = useState(null);
   const [loading, setLoading] = useState(true);
   const [formData, setFormData] = useState([]);
   const { showToast } = useToast();
+  const today = getToday();
+  const logDate = today;
+  const templateId = searchParams.get("templateId");
 
   useEffect(() => {
+    if (templateId) return;
     async function fetchWorkout() {
       const { data, error } = await supabase
         .from("workout_logs")
         .select("*")
-        .eq("date", selectedDate)
+        .eq("date", today)
         .order("id", { ascending: false })
         .limit(1)
         .maybeSingle();
@@ -91,7 +88,7 @@ export default function LogWorkoutView() {
         );
       } else {
         // No existing log — forecast from template
-        const weekday = getWeekday(selectedDate).toLowerCase();
+        const weekday = getWeekday(today).toLowerCase();
         const { data: template, error: templateError } = await supabase
           .from("workout_templates")
           .select("*")
@@ -123,9 +120,9 @@ export default function LogWorkoutView() {
           setFormData(structuredData);
 
           setLog({
-            date: selectedDate,
+            date: today,
             muscle_group: firstTemplate.workout_name,
-            day: getWeekday(selectedDate),
+            day: getWeekday(today),
           });
         } else {
           console.warn("No template found for this day.");
@@ -135,7 +132,46 @@ export default function LogWorkoutView() {
       setLoading(false);
     }
     fetchWorkout();
-  }, [selectedDate]);
+  }, [today, templateId]);
+
+  // Template loading effect
+  useEffect(() => {
+    if (!templateId) return;
+    setLoading(true);
+    (async () => {
+      const { data: template, error } = await supabase
+        .from("workout_templates")
+        .select("*")
+        .eq("id", templateId)
+        .maybeSingle();
+      if (error) {
+        console.error("Error loading template:", error);
+      } else if (template) {
+        let exercises = template.exercises;
+        if (typeof exercises === "string") {
+          try {
+            exercises = JSON.parse(exercises);
+          } catch {
+            exercises = {};
+          }
+        }
+        const flat = [];
+        ["warmup", "main", "cooldown"].forEach((section) => {
+          (exercises[section] || []).forEach((ex) => {
+            flat.push({ ...ex, section });
+          });
+        });
+        setFormData(flat);
+        setLog({
+          id: null,
+          date: today,
+          muscle_group: template.workout_name,
+          day: getWeekday(today),
+        });
+      }
+      setLoading(false);
+    })();
+  }, [templateId]);
 
   const handleChange = (index, field, value) => {
     const updated = [...formData];
@@ -174,56 +210,56 @@ export default function LogWorkoutView() {
         })),
     };
 
-    if (log?.id) {
+    const shouldInsert = !log?.id;
+    if (!shouldInsert) {
+      // Update today's existing workout
       const { error } = await supabase
         .from("workout_logs")
         .update({ exercises: updatedExercises, forecast: false })
         .eq("id", log.id);
-
       if (error) {
         console.error("Error updating workout:", error);
       } else {
-        showToast("Workout updated successfully! 🎉");
-        if (selectedDate) {
-          navigate(`/summary/${selectedDate}`, {
-            state: {
-              previousViewMode: location.state?.previousViewMode,
-              previousSelectedDate: location.state?.previousSelectedDate,
-              fromPreview: location.state?.fromPreview,
-            },
-            replace: true,
-          });
-        } else {
-          navigate("/summary");
-        }
+        showToast("Workout updated successfully! 🎉", "success");
+        navigate(`/summary/${logDate}`, { replace: true });
       }
     } else {
-      const { error } = await supabase.from("workout_logs").insert([
-        {
-          date: selectedDate,
-          exercises: updatedExercises,
-          forecast: false,
-          muscle_group: log?.muscle_group || "",
-          day: log?.day || getWeekday(selectedDate),
-        },
-      ]);
+      // Insert as today's workout, or update if already exists
+      const { error: insertError } = await supabase
+        .from("workout_logs")
+        .insert([
+          {
+            date: logDate,
+            exercises: updatedExercises,
+            forecast: false,
+            muscle_group: log?.muscle_group || "",
+            day: getWeekday(logDate),
+          },
+        ]);
 
-      if (error) {
-        console.error("Error inserting workout:", error);
+      if (insertError) {
+        if (insertError.code === "23505") {
+          // Duplicate date, so update existing record
+          const { error: updateError } = await supabase
+            .from("workout_logs")
+            .update({
+              exercises: updatedExercises,
+              forecast: false,
+              skipped: false,
+            })
+            .eq("date", logDate);
+          if (updateError) {
+            console.error("Error updating existing workout:", updateError);
+          } else {
+            showToast("Workout updated successfully! 🎉", "success");
+            navigate(`/summary/${logDate}`, { replace: true });
+          }
+        } else {
+          console.error("Error inserting workout:", insertError);
+        }
       } else {
         showToast("Workout logged successfully! 🚀");
-        if (selectedDate) {
-          navigate(`/summary/${selectedDate}`, {
-            state: {
-              previousViewMode: location.state?.previousViewMode,
-              previousSelectedDate: location.state?.previousSelectedDate,
-              fromPreview: location.state?.fromPreview,
-            },
-            replace: true,
-          });
-        } else {
-          navigate("/summary");
-        }
+        navigate(`/summary/${logDate}`, { replace: true });
       }
     }
   };
@@ -240,7 +276,7 @@ export default function LogWorkoutView() {
         <div className="flex justify-between items-center mb-4 flex-wrap gap-3">
           <BackButton />
           <h1 className="text-xl font-bold">
-            Log Workout for {formatDateWithOptions(selectedDate)}
+            Log Workout for {formatDateWithOptions(logDate)}
           </h1>
         </div>
       </div>
@@ -256,7 +292,7 @@ export default function LogWorkoutView() {
       )}
 
       <h2 className="text-lg font-semibold text-[#C63663] mt-4">
-        {log.day || getWeekday(selectedDate)} — {log.muscle_group}
+        {getWeekday(logDate)} — {log.muscle_group}
       </h2>
 
       <div className="pb-20">

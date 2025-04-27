@@ -7,6 +7,7 @@ export function ToastProvider({ children }) {
   const [visible, setVisible] = useState(false);
   const [showUndo, setShowUndo] = useState(false);
   const [onUndo, setOnUndo] = useState(null);
+  const [toastType, setToastType] = useState("success");
 
   useEffect(() => {
     let timeout;
@@ -19,9 +20,10 @@ export function ToastProvider({ children }) {
       }, 5000);
     }
     return () => clearTimeout(timeout);
-  }, [visible]);
+  }, [visible, message]);
 
-  const showToast = (msg, options = {}) => {
+  const showToast = (msg, type = "success", options = {}) => {
+    setToastType(type);
     setMessage(msg);
     setVisible(true);
     setShowUndo(options.showUndo || false);
@@ -35,7 +37,15 @@ export function ToastProvider({ children }) {
 
   return (
     <ToastContext.Provider
-      value={{ message, visible, showToast, hideToast, showUndo, onUndo }}
+      value={{
+        message,
+        visible,
+        toastType,
+        showToast,
+        hideToast,
+        showUndo,
+        onUndo,
+      }}
     >
       {children}
     </ToastContext.Provider>

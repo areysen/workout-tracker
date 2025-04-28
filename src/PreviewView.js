@@ -140,38 +140,33 @@ function PreviewView() {
   if (loading) {
     return (
       <div className="min-h-screen bg-[#242B2F] text-white flex items-center justify-center">
-        <p className="text-pink-400 text-lg">Loading preview...</p>
+        <div className="animate-spin rounded-full h-10 w-10 border-t-2 border-b-2 border-pink-400"></div>
       </div>
     );
   }
   return (
     <div className="min-h-screen bg-[#242B2F] text-white p-4 max-w-3xl mx-auto">
-      <div
-        className="sticky top-0 z-10 bg-[#242B2F] pb-4"
-        style={{
-          paddingTop: scrolled ? "env(safe-area-inset-top)" : "0px",
-        }}
-      >
+      <div className="sticky top-0 z-10 bg-[#242B2F] pb-4">
         <div className="flex justify-between items-center flex-wrap gap-3">
           <BackButton />
-          <h1 className="text-xl font-bold">
+          <h1 className="text-3xl font-bold mb-1">
             Preview for {formatDateWithOptions(date)}
           </h1>
         </div>
+        {/* Motivational banner */}
+        {date === today && (
+          <motion.div
+            initial={{ y: -20, opacity: 0 }}
+            animate={{ y: 0, opacity: 1 }}
+            transition={{ duration: 0.5, ease: "easeOut" }}
+            className="text-center bg-gradient-to-r from-pink-500 to-pink-700 text-white py-4 px-6 rounded-2xl mt-2 shadow-glow border border-pink-400 hover:shadow-glow-hover"
+          >
+            ⚡ Ready to Crush Your Workout? Preview Your Plan!
+          </motion.div>
+        )}
       </div>
 
-      {/* Motivational banner */}
-      {date === today && (
-        <motion.div
-          initial={{ y: -20, opacity: 0 }}
-          animate={{ y: 0, opacity: 1 }}
-          transition={{ duration: 0.5, ease: "easeOut" }}
-          className="text-center bg-gradient-to-r from-pink-500 to-pink-700 text-white py-3 px-4 rounded-md mb-6 shadow-md"
-        >
-          ⚡ Ready to Crush Your Workout? Preview Your Plan!
-        </motion.div>
-      )}
-      <div className="pb-32">
+      <div className="pb-52">
         <div className="space-y-3">
           {logForDate && (
             <h2 className="text-xl font-semibold text-pink-400 mb-4">
@@ -229,7 +224,7 @@ function PreviewView() {
         </div>
       </div>
       <>
-        <div className="pb-32" />
+        <div className="pb-52"></div>
         <div className="fixed bottom-0 left-0 w-full bg-[#242B2F] p-4 space-y-3 z-10 max-w-3xl mx-auto">
           <button
             onClick={() => {
@@ -243,7 +238,7 @@ function PreviewView() {
                 });
               }
             }}
-            className="w-full bg-white text-[#242B2F] font-bold py-2 px-4 rounded hover:brightness-110 text-center"
+            className="w-full bg-gradient-to-r from-pink-500 to-pink-700 text-white font-bold py-2 px-4 rounded-2xl shadow-glow hover:shadow-glow-hover transition duration-300 text-center"
           >
             Start Workout
           </button>
@@ -251,23 +246,23 @@ function PreviewView() {
           {!todaySkipped && !todayHasLog ? (
             <button
               onClick={() => setShowConfirmSkip(true)}
-              className="w-full bg-gradient-to-br from-pink-600 to-red-600 text-white font-bold py-2 px-4 rounded hover:brightness-110 transition text-center"
+              className="w-full bg-gradient-to-br from-pink-600 to-red-600 text-white font-bold py-2 px-4 rounded-2xl shadow-glow hover:shadow-glow-hover transition duration-300 text-center"
             >
               Skip Today
             </button>
           ) : todaySkipped ? (
             <button
               disabled
-              className="w-full bg-gray-600 text-white font-bold py-2 px-4 rounded cursor-not-allowed text-center"
+              className="w-full bg-gradient-to-br from-gray-700 to-gray-600 text-white font-bold py-2 px-4 rounded-2xl border border-pink-400 shadow-glow cursor-not-allowed text-center"
             >
               Skipped
             </button>
           ) : todayHasLog ? (
             <button
               disabled
-              className="w-full bg-gray-600 text-white font-bold py-2 px-4 rounded cursor-not-allowed text-center"
+              className="w-full bg-gradient-to-br from-gray-700 to-gray-600 text-white font-bold py-2 px-4 rounded-2xl border border-pink-400 shadow-glow cursor-not-allowed text-center"
             >
-              Logged
+              Logged for Today
             </button>
           ) : null}
         </div>

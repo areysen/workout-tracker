@@ -283,7 +283,13 @@ export default function LogWorkoutView() {
     }
   };
 
-  if (loading) return <div className="text-white p-4">Loading...</div>;
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-[#242B2F] text-white flex items-center justify-center">
+        <div className="animate-spin rounded-full h-10 w-10 border-t-2 border-b-2 border-pink-400"></div>
+      </div>
+    );
+  }
   if (!log)
     return (
       <div className="text-white p-4">No workout found for this date.</div>
@@ -291,35 +297,31 @@ export default function LogWorkoutView() {
 
   return (
     <div className="min-h-screen bg-[#242B2F] text-white p-4 max-w-3xl mx-auto">
-      <div
-        className="sticky top-0 z-10 bg-[#242B2F] pb-4"
-        style={{
-          paddingTop: scrolled ? "env(safe-area-inset-top)" : "0px",
-        }}
-      >
-        <div className="flex justify-between items-center mb-4 flex-wrap gap-3">
+      <div className="sticky top-0 z-10 bg-[#242B2F] pb-4">
+        <div className="flex justify-between items-center flex-wrap gap-3">
           <BackButton />
-          <h1 className="text-xl font-bold">
+          <h1 className="text-3xl font-bold mb-1">
             Log Workout for {formatDateWithOptions(logDate)}
           </h1>
         </div>
-      </div>
-      {!log?.forecast && (
-        <motion.div
-          initial={{ y: -20, opacity: 0 }}
-          animate={{ y: 0, opacity: 1 }}
-          transition={{ duration: 0.5, ease: "easeOut" }}
-          className="text-center bg-gradient-to-r from-pink-500 to-pink-700 text-white py-3 px-4 rounded-md mb-6 shadow-md"
-        >
-          🚀 Mission Started! Crush today's workout!
-        </motion.div>
-      )}
 
-      <h2 className="text-lg font-semibold text-[#C63663] mt-4">
+        {!log?.forecast && (
+          <motion.div
+            initial={{ y: -20, opacity: 0 }}
+            animate={{ y: 0, opacity: 1 }}
+            transition={{ duration: 0.5, ease: "easeOut" }}
+            className="text-center bg-gradient-to-r from-pink-500 to-pink-700 text-white py-4 px-6 rounded-2xl mt-2 shadow-glow border border-pink-400 hover:shadow-glow-hover"
+          >
+            🚀 Mission Started! Crush today's workout!
+          </motion.div>
+        )}
+      </div>
+
+      <h2 className="text-xl font-semibold text-pink-400 mb-4">
         {getWeekday(logDate)} — {log.muscle_group}
       </h2>
 
-      <div className="pb-20">
+      <div className="pb-52">
         <form className="space-y-6 mt-4">
           {["warmup", "main", "cooldown"].map((section) => {
             const exercises = formData.filter((ex) => ex.section === section);
@@ -580,7 +582,7 @@ export default function LogWorkoutView() {
       <div className="fixed bottom-0 left-0 right-0 bg-[#242B2F] p-4 shadow-md z-10">
         <button
           onClick={handleSubmit}
-          className="w-full bg-gradient-to-r from-pink-500 to-pink-700 text-white py-3 rounded font-bold text-lg hover:opacity-90 transition"
+          className="w-full bg-gradient-to-r from-pink-500 to-pink-700 text-white font-bold py-3 px-4 rounded-2xl shadow-glow hover:shadow-glow-hover transition duration-300 text-lg"
         >
           Save Workout
         </button>

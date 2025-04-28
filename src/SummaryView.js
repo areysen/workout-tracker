@@ -85,38 +85,33 @@ export default function SummaryView() {
   if (loading) {
     return (
       <div className="min-h-screen bg-[#242B2F] text-white flex items-center justify-center">
-        <p className="text-pink-400 text-lg">Loading summary...</p>
+        <div className="animate-spin rounded-full h-10 w-10 border-t-2 border-b-2 border-pink-400"></div>
       </div>
     );
   }
 
   return (
     <div className="min-h-screen bg-[#242B2F] text-white p-4 max-w-3xl mx-auto">
-      <div
-        className="sticky top-0 z-10 bg-[#242B2F] pb-4"
-        style={{
-          paddingTop: scrolled ? "env(safe-area-inset-top)" : "0px",
-        }}
-      >
+      <div className="sticky top-0 z-10 bg-[#242B2F] pb-4">
         <div className="flex justify-between items-center flex-wrap gap-3">
           <BackButton />
-          <h1 className="text-xl font-bold">
-            Summary for {formatDateWithOptions(date)}
+          <h1 className="text-3xl font-bold mb-1">
+            Summary for {formattedDate}
           </h1>
         </div>
-      </div>
 
-      {/* Motivational banner */}
-      {!logEntry?.skipped && (
-        <motion.div
-          initial={{ y: -20, opacity: 0 }}
-          animate={{ y: 0, opacity: 1 }}
-          transition={{ duration: 0.5, ease: "easeOut" }}
-          className="text-center bg-gradient-to-r from-pink-500 to-pink-700 text-white py-3 px-4 rounded-md mb-6 shadow-md"
-        >
-          🏆 Workout Summary — Great Job Reviewing Your Progress!
-        </motion.div>
-      )}
+        {/* Motivational banner moved inside sticky */}
+        {!logEntry?.skipped && (
+          <motion.div
+            initial={{ y: -20, opacity: 0 }}
+            animate={{ y: 0, opacity: 1 }}
+            transition={{ duration: 0.5, ease: "easeOut" }}
+            className="text-center bg-gradient-to-r from-pink-500 to-pink-700 text-white py-4 px-6 rounded-2xl mt-2 shadow-glow border border-pink-400 hover:shadow-glow-hover"
+          >
+            🏆 Workout Summary — Great Job Reviewing Your Progress!
+          </motion.div>
+        )}
+      </div>
 
       {/* Main content and bottom action bar logic */}
       {!logEntry ? (
@@ -127,7 +122,7 @@ export default function SummaryView() {
             </p>
           </div>
           {/* Bottom bar for Mark As Skipped */}
-          <div className="pb-32" />
+          <div className="pb-52" />
           <div className="fixed bottom-0 left-0 w-full bg-[#242B2F] p-4 space-y-3 z-10 max-w-3xl mx-auto">
             {date !== today && (
               <button
@@ -152,7 +147,7 @@ export default function SummaryView() {
                     navigate(0); // reload
                   }
                 }}
-                className="w-full bg-gradient-to-br from-pink-600 to-red-600 text-white font-bold py-2 px-4 rounded hover:brightness-110 transition"
+                className="w-full bg-gradient-to-br from-pink-600 to-red-600 text-white font-bold py-2 px-4 rounded-2xl shadow-glow hover:shadow-glow-hover transition duration-300"
               >
                 Mark As Skipped
               </button>
@@ -167,11 +162,11 @@ export default function SummaryView() {
             </p>
           </div>
           {/* Bottom bar for Skipped status */}
-          <div className="pb-32" />
+          <div className="pb-52" />
           <div className="fixed bottom-0 left-0 w-full bg-[#242B2F] p-4 space-y-3 z-10 max-w-3xl mx-auto">
             <button
               disabled
-              className="w-full bg-gray-600 text-white font-bold py-2 px-4 rounded cursor-not-allowed"
+              className="w-full bg-gradient-to-br from-gray-700 to-gray-600 text-white font-bold py-2 px-4 rounded-2xl border border-pink-400 shadow-glow cursor-not-allowed"
             >
               Skipped
             </button>
@@ -179,7 +174,7 @@ export default function SummaryView() {
         </>
       ) : (
         <>
-          <div className="pb-32">
+          <div className="pb-52">
             <div className="space-y-3">
               <h2 className="text-xl font-semibold text-pink-400 mb-4">
                 {logEntry.day} — {logEntry.muscle_group}
@@ -228,18 +223,18 @@ export default function SummaryView() {
           {/* Bottom bar for Edit/Delete */}
           <div className="fixed bottom-0 left-0 w-full bg-[#242B2F] p-4 space-y-3 z-10 max-w-3xl mx-auto">
             {date === today && (
-              <button
-                onClick={() => navigate("/log")}
-                className="w-full bg-white text-[#242B2F] font-bold py-2 px-4 rounded hover:brightness-110"
-              >
-                Edit Workout
+              <button className="w-full bg-gradient-to-r from-pink-500 to-pink-700 text-white font-bold py-2 px-4 rounded-2xl shadow-glow hover:shadow-glow-hover transition duration-300">
+                ✏️ Edit Workout
               </button>
             )}
             <button
-              onClick={() => setConfirmOpen(true)}
-              className="w-full bg-gradient-to-br from-pink-600 to-red-600 text-white font-bold py-2 px-4 rounded hover:brightness-110 transition"
+              onClick={() => navigate("/calendar")}
+              className="w-full bg-gradient-to-r from-indigo-500 to-indigo-700 text-white font-bold py-2 px-4 rounded-2xl shadow-glow hover:shadow-glow-hover transition duration-300"
             >
-              Delete Workout
+              🗓 Return to Calendar
+            </button>
+            <button className="w-full bg-gradient-to-br from-pink-600 to-red-600 text-white font-bold py-2 px-4 rounded-2xl shadow-glow hover:shadow-glow-hover transition duration-300">
+              🗑 Delete Workout
             </button>
           </div>
         </>

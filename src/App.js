@@ -6,6 +6,7 @@ import CalendarView from "./CalendarView";
 import SummaryView from "./SummaryView";
 import PreviewView from "./PreviewView";
 import LogWorkoutView from "./LogWorkoutView";
+import MissionCompleteView from "./MissionCompleteView";
 import { ToastProvider } from "./components/ToastContext";
 import ToastBanner from "./components/ToastBanner";
 
@@ -21,6 +22,7 @@ function App() {
           <Route path="/preview/:date" element={<PreviewView />} />
           <Route path="/log" element={<LogWorkoutView />} />
           <Route path="/templates" element={<TemplateListView />} />
+          <Route path="/mission-complete" element={<MissionCompleteView />} />
         </Routes>
       </BrowserRouter>
     </ToastProvider>

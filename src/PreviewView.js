@@ -293,8 +293,10 @@ function PreviewView() {
             showToast("Failed to skip workout. Please try again.", "error");
           } else {
             setTodaySkipped(true);
-            showToast("Workout skipped!", "error");
-            navigate("/");
+            navigate("/mission-complete", {
+              replace: true,
+              state: { type: "skipped" },
+            });
           }
         }}
       />

@@ -233,8 +233,10 @@ export default function LogWorkoutView() {
       if (error) {
         console.error("Error updating workout:", error);
       } else {
-        showToast("Workout updated successfully! 🎉", "success");
-        navigate(`/summary/${logDate}`, { replace: true });
+        navigate("/mission-complete", {
+          replace: true,
+          state: { type: "completed" },
+        });
       }
     } else {
       // Insert as today's workout, or update if already exists
@@ -264,15 +266,19 @@ export default function LogWorkoutView() {
           if (updateError) {
             console.error("Error updating existing workout:", updateError);
           } else {
-            showToast("Workout updated successfully! 🎉", "success");
-            navigate(`/summary/${logDate}`, { replace: true });
+            navigate("/mission-complete", {
+              replace: true,
+              state: { type: "completed" },
+            });
           }
         } else {
           console.error("Error inserting workout:", insertError);
         }
       } else {
-        showToast("Workout logged successfully! 🚀");
-        navigate(`/summary/${logDate}`, { replace: true });
+        navigate("/mission-complete", {
+          replace: true,
+          state: { type: "completed" },
+        });
       }
     }
   };

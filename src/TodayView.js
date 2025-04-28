@@ -141,21 +141,24 @@ export default function TodayView() {
       <p className="text-md text-gray-300 mb-6">📅 Today is {formattedDate}</p>
 
       {loading ? (
-        <div className="bg-[#2E353A] p-4 rounded-lg mb-6 border border-[#C63663] flex justify-center items-center h-32">
-          <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-pink-400"></div>
+        <div className="bg-[#2E353A] p-6 rounded-2xl mb-8 border border-pink-400 flex justify-center items-center h-40 shadow-glow">
+          <div className="animate-spin rounded-full h-10 w-10 border-t-2 border-b-2 border-pink-400"></div>
         </div>
       ) : (
         todayLog && (
-          <div className="bg-[#2E353A] p-4 rounded-lg mb-6 border border-[#C63663]">
-            <h2 className="text-xl font-bold mb-2 text-pink-400">
-              {todayLog.skipped ? "🏖️ Recovery Day" : "🎯 Mission of the Day"}
+          <div className="bg-[#2E353A] p-6 rounded-2xl mb-8 border border-pink-400 shadow-glow hover:shadow-glow-hover transition duration-300 text-center">
+            <h2 className="text-2xl font-extrabold mb-2 text-pink-400">
+              {todayLog.skipped ? "🏖️ Recovery Day" : "🎯 Today's Mission"}
             </h2>
-            <p className="text-lg">
+            <p className="text-lg mb-4 font-semibold">
               {todayLog.skipped
                 ? `Workout Skipped: ${todayLog.muscle_group || "Workout"}`
                 : todayLog.forecast
                 ? `Planned Workout: ${todayLog.workout_name || "Workout"}`
                 : `Completed Workout: ${todayLog.muscle_group || "Workout"}`}
+            </p>
+            <p className="text-sm text-gray-400 italic">
+              {getRandomCoachBotTip(todayLog?.muscle_group)}
             </p>
           </div>
         )
@@ -165,14 +168,14 @@ export default function TodayView() {
         {todayLog?.skipped ? (
           <button
             disabled
-            className="bg-gray-600 text-white py-3 px-6 rounded font-bold text-lg cursor-not-allowed text-center"
+            className="bg-[#4A5568] text-white py-3 px-6 rounded-2xl font-semibold shadow-glow hover:shadow-glow-hover transition duration-300 text-center"
           >
             Skipped
           </button>
         ) : todayLog?.forecast ? (
           <>
             <button
-              className="bg-gradient-to-r from-pink-500 to-pink-700 text-white py-3 px-6 rounded font-bold text-lg hover:opacity-90 transition"
+              className="bg-gradient-to-r from-pink-500 to-pink-700 text-white py-3 px-6 rounded-2xl font-bold text-lg shadow-glow hover:shadow-glow-hover transition duration-300"
               onClick={() =>
                 navigate("/log", { state: { fromTodayView: true } })
               }
@@ -180,7 +183,7 @@ export default function TodayView() {
               Start Workout
             </button>
             <button
-              className="bg-gradient-to-r from-pink-600 to-red-600 text-white py-3 px-6 rounded font-bold text-lg hover:opacity-90 transition"
+              className="bg-gradient-to-r from-pink-600 to-red-600 text-white py-3 px-6 rounded-2xl font-bold text-lg shadow-glow hover:shadow-glow-hover transition duration-300"
               onClick={() => setShowConfirmSkip(true)}
             >
               Skip Today
@@ -189,7 +192,7 @@ export default function TodayView() {
         ) : (
           <>
             <button
-              className="bg-gradient-to-r from-pink-500 to-pink-700 text-white py-3 px-6 rounded font-bold text-lg hover:opacity-90 transition"
+              className="bg-gradient-to-r from-pink-500 to-pink-700 text-white py-3 px-6 rounded-2xl font-bold text-lg shadow-glow hover:shadow-glow-hover transition duration-300"
               onClick={() =>
                 navigate(`/summary/${today}`, {
                   state: { fromTodayView: true },
@@ -201,33 +204,43 @@ export default function TodayView() {
           </>
         )}
         <button
-          className="bg-[#343E44] text-white py-2 px-4 rounded font-semibold hover:bg-gray-700 transition"
+          className="flex items-center justify-center bg-gradient-to-r from-indigo-500 to-indigo-700 text-white py-3 px-6 rounded-2xl font-semibold shadow-glow hover:shadow-glow-hover transition duration-300"
           onClick={() => navigate("/calendar")}
         >
           📅 View Calendar
         </button>
       </div>
 
-      <div className="bg-[#2E353A] p-4 rounded-lg mb-6 border border-gray-600">
-        <h2 className="text-lg font-semibold mb-2 text-gray-300">
-          📈 Your Progress
-        </h2>
-        <p className="text-gray-200">
-          🔥 Current Streak:{" "}
-          <span className="font-bold">{currentStreak} days</span>
-        </p>
-        {bestStreak > 0 && (
-          <p className="text-gray-200 mt-1">
-            🏆 Best Streak: <span className="font-bold">{bestStreak} days</span>
-          </p>
+      <div className="bg-[#2E353A] p-6 rounded-2xl mb-6 border border-pink-400 shadow-glow hover:shadow-glow-hover transition duration-300 text-center">
+        {loading ? (
+          <div className="animate-pulse space-y-2">
+            <div className="h-6 bg-gray-700 rounded-2xl w-1/2 mx-auto" />
+            <div className="h-4 bg-gray-700 rounded-2xl w-2/3 mx-auto" />
+          </div>
+        ) : (
+          <>
+            <h2 className="text-lg font-semibold mb-2 text-gray-300">
+              📈 Your Progress
+            </h2>
+            <p className="text-gray-200">
+              🔥 Current Streak:{" "}
+              <span className="font-bold">{currentStreak} days</span>
+            </p>
+            {bestStreak > 0 && (
+              <p className="text-gray-200 mt-1">
+                🏆 Best Streak:{" "}
+                <span className="font-bold">{bestStreak} days</span>
+              </p>
+            )}
+          </>
         )}
       </div>
 
-      <div className="mt-6 p-4 bg-[#2E353A] rounded-lg border border-[#C63663]">
+      <div className="mt-6 p-6 bg-[#2E353A] rounded-2xl border border-pink-400 shadow-glow hover:shadow-glow-hover transition duration-300 text-center">
         <h2 className="text-lg font-bold mb-2 text-pink-400">⚡ Shortcuts</h2>
         <div className="flex flex-col gap-3">
           <button
-            className="flex items-center justify-center bg-gradient-to-r from-pink-500 to-pink-700 text-white py-2 px-4 rounded font-semibold hover:opacity-90 transition"
+            className="flex items-center justify-center bg-gradient-to-r from-pink-500 to-pink-700 text-white py-3 px-6 rounded-2xl font-semibold shadow-glow hover:shadow-glow-hover transition duration-300"
             onClick={() => setShowBarcodeModal(true)}
           >
             <img src={CrunchIcon} alt="Crunch" className="h-5 w-5 mr-2" />
@@ -238,7 +251,7 @@ export default function TodayView() {
               (window.location.href =
                 "shortcuts://run-shortcut?name=Open%20MacroFactor")
             }
-            className="flex items-center justify-center bg-[#343E44] text-white py-2 px-4 rounded font-semibold hover:bg-gray-700 transition"
+            className="flex items-center justify-center bg-gradient-to-r from-indigo-500 to-indigo-700 text-white py-3 px-6 rounded-2xl font-semibold shadow-glow hover:shadow-glow-hover transition duration-300"
           >
             <img
               src={MacroFactorIcon}
@@ -248,22 +261,22 @@ export default function TodayView() {
             <span>Open MacroFactor</span>
           </button>
           <button
+            className="bg-[#4A5568] text-white py-3 px-6 rounded-2xl font-semibold shadow-glow hover:shadow-glow-hover transition duration-300 text-center"
             onClick={() => navigate("/templates")}
-            className="bg-[#4A5568] text-white py-2 px-4 rounded font-semibold hover:bg-gray-700 transition text-center"
           >
             🗂 Templates
           </button>
         </div>
       </div>
 
-      <div className="mt-6 p-4 bg-[#2E353A] rounded-lg border border-[#C63663]">
+      <div className="mt-6 p-6 bg-[#2E353A] rounded-2xl border border-pink-400 shadow-glow hover:shadow-glow-hover transition duration-300 text-center">
         <h2 className="text-lg font-bold mb-2 text-pink-400">
           🤖 CoachBot Tip
         </h2>
         {loading ? (
           <div className="space-y-2 animate-pulse">
-            <div className="h-4 bg-gray-700 rounded w-3/4" />
-            <div className="h-4 bg-gray-700 rounded w-2/3" />
+            <div className="h-4 bg-gray-700 rounded-2xl w-3/4" />
+            <div className="h-4 bg-gray-700 rounded-2xl w-2/3" />
           </div>
         ) : (
           <p className="text-sm text-gray-300">
@@ -293,10 +306,10 @@ export default function TodayView() {
             console.error("Error skipping workout:", error);
             showToast("Failed to skip workout. Please try again.", "error");
           } else {
-            showToast("Workout skipped!", "error");
-            const logs = await fetchWorkoutLogs();
-            let todayMatch = logs.find((log) => log.date === today);
-            setTodayLog(todayMatch || null);
+            navigate("/mission-complete", {
+              replace: true,
+              state: { type: "skipped" },
+            });
           }
         }}
       />

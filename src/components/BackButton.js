@@ -33,7 +33,7 @@ export default function BackButton({ fallback = "/", label = "← Back", to }) {
   return (
     <button
       onClick={handleBack}
-      className="text-sm border border-white px-3 py-1 rounded hover:bg-white/10"
+      className="px-3 py-1 bg-gradient-to-r from-pink-500 to-pink-700 text-white rounded-2xl shadow-glow hover:shadow-glow-hover transition duration-300 text-sm"
     >
       {label}
     </button>

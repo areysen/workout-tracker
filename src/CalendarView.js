@@ -33,6 +33,27 @@ export default function CalendarView() {
   const today = new Date();
   const todayRef = useRef(null);
   const monthRefs = useRef({});
+
+  // Touch swipe refs and handlers for week/month navigation (vertical swipe)
+  const touchStartXRef = useRef(null);
+  const touchStartYRef = useRef(null);
+  const handleTouchStart = (e) => {
+    touchStartXRef.current = e.touches[0].clientX;
+    touchStartYRef.current = e.touches[0].clientY;
+  };
+  const handleTouchEnd = (e) => {
+    if (touchStartXRef.current == null || touchStartYRef.current == null)
+      return;
+    const diffY = e.changedTouches[0].clientY - touchStartYRef.current;
+    const diffX = e.changedTouches[0].clientX - touchStartXRef.current;
+    // only trigger on predominant vertical swipe
+    if (Math.abs(diffY) > Math.abs(diffX) && Math.abs(diffY) > 50) {
+      if (diffY > 0) handlePrevious();
+      else handleNext();
+    }
+    touchStartXRef.current = null;
+    touchStartYRef.current = null;
+  };
   const location = useLocation();
   const [scrolled, setScrolled] = useState(false);
 
@@ -93,6 +114,13 @@ export default function CalendarView() {
     });
   }, [selectedDate]);
 
+  const isTodayActive =
+    (viewMode === "week" &&
+      selectedDate.toDateString() === today.toDateString()) ||
+    (viewMode === "month" &&
+      selectedDate.getMonth() === today.getMonth() &&
+      selectedDate.getFullYear() === today.getFullYear());
+
   useEffect(() => {
     if (
       location.state?.previousViewMode &&
@@ -119,26 +147,7 @@ export default function CalendarView() {
     }
     // eslint-disable-next-line
   }, [location.state, showToast]);
-  useEffect(() => {
-    if (viewMode === "year") {
-      setTimeout(() => {
-        const scrollDate = location.state?.previousSelectedDate
-          ? new Date(location.state.previousSelectedDate)
-          : today;
-        const monthKey = new Date(
-          scrollDate.getFullYear(),
-          scrollDate.getMonth()
-        ).toLocaleDateString("en-US", {
-          month: "long",
-          year: "numeric",
-        });
-        const ref = monthRefs.current[monthKey];
-        if (ref) {
-          ref.scrollIntoView({ behavior: "smooth" });
-        }
-      }, 100);
-    }
-  }, [viewMode]);
+
   // Move fetchWorkoutLogs and fetchWorkoutTemplates outside useEffect for reuse
   async function fetchWorkoutLogs() {
     const { data, error } = await supabase.from("workout_logs").select("*");
@@ -250,29 +259,11 @@ export default function CalendarView() {
 
   const handleGoToToday = () => {
     setSelectedDate(today);
-    if (viewMode === "year") {
-      const monthKey = new Date(
-        today.getFullYear(),
-        today.getMonth()
-      ).toLocaleDateString("en-US", {
-        month: "long",
-        year: "numeric",
-      });
-      const ref = monthRefs.current[monthKey];
-      if (ref) {
-        ref.scrollIntoView({ behavior: "smooth" });
-      }
-    }
   };
 
   const renderControls = () => (
-    <div
-      className="sticky top-0 z-10 bg-[#242B2F] pb-4"
-      style={{
-        paddingTop: scrolled ? "env(safe-area-inset-top)" : "0px",
-      }}
-    >
-      <div className="flex justify-between items-start pt-4 pb-2 flex-wrap gap-2 sm:flex-nowrap">
+    <div className="sticky inset-x-0 top-0 z-10 bg-[#242B2F] pb-4">
+      <div className="flex justify-between items-center pt-4 pb-2 flex-wrap gap-2 sm:flex-nowrap">
         <div className="flex items-center gap-2">
           <BackButton to="/" label="Home" />
         </div>
@@ -281,7 +272,7 @@ export default function CalendarView() {
           <div className="flex justify-center items-center gap-4">
             <button
               onClick={handlePrevious}
-              className="text-xl text-white hover:text-[#C63663]"
+              className="p-2 w-10 h-10 flex items-center justify-center bg-gradient-to-r from-pink-500 to-pink-700 text-white rounded-full shadow-glow hover:shadow-glow-hover transition duration-300"
               aria-label="Previous"
             >
               ←
@@ -300,7 +291,7 @@ export default function CalendarView() {
             </h2>
             <button
               onClick={handleNext}
-              className="text-xl text-white hover:text-[#C63663]"
+              className="p-2 w-10 h-10 flex items-center justify-center bg-gradient-to-r from-pink-500 to-pink-700 text-white rounded-full shadow-glow hover:shadow-glow-hover transition duration-300"
               aria-label="Next"
             >
               →
@@ -311,23 +302,28 @@ export default function CalendarView() {
         <div className="flex items-center gap-2">
           <button
             onClick={handleGoToToday}
-            className="text-sm border border-white px-3 py-1 rounded hover:bg-white/10"
+            disabled={isTodayActive}
+            className={`px-3 py-1 rounded-2xl text-sm transition duration-300 ${
+              isTodayActive
+                ? "bg-pink-700 text-gray-200 cursor-not-allowed opacity-60"
+                : "bg-gradient-to-r from-pink-500 to-pink-700 text-white shadow-glow hover:shadow-glow-hover"
+            }`}
           >
             Today
           </button>
         </div>
       </div>
 
-      <div className="flex justify-between items-start flex-wrap gap-2 sm:flex-nowrap">
+      <div className="flex justify-between items-center flex-wrap gap-2 sm:flex-nowrap">
         <div className="flex gap-2 mt-2 sm:mt-0">
-          {["week", "month", "year"].map((mode) => (
+          {["week", "month"].map((mode) => (
             <button
               key={mode}
               onClick={() => setViewMode(mode)}
-              className={`text-sm px-3 py-1 rounded font-medium ${
+              className={`text-sm px-3 py-1 rounded-2xl font-medium transition duration-300 ${
                 viewMode === mode
-                  ? "bg-[#C63663] text-white"
-                  : "border border-[#818C91] text-white hover:bg-white/10"
+                  ? "bg-gradient-to-r from-pink-500 to-pink-700 text-white shadow-glow"
+                  : "border border-pink-400 text-white hover:bg-white/10 hover:shadow-glow-hover"
               }`}
             >
               {mode.charAt(0).toUpperCase() + mode.slice(1)}
@@ -379,7 +375,7 @@ export default function CalendarView() {
             if (templateForDay) {
               // Only show the icon for future dates in Grid View
               forecastLabel =
-                viewMode === "month" || viewMode === "year"
+                viewMode === "month"
                   ? "🏋️"
                   : `🏋️ ${templateForDay.workout_name}`;
             }
@@ -497,37 +493,32 @@ export default function CalendarView() {
   };
 
   return (
-    <div className="min-h-screen bg-[#242B2F] text-white p-4 max-w-3xl mx-auto">
+    <div
+      className="min-h-screen bg-[#242B2F] text-white px-4 pt-0 pb-52 max-w-3xl mx-auto"
+      onTouchStart={viewMode === "week" ? handleTouchStart : undefined}
+      onTouchEnd={viewMode === "week" ? handleTouchEnd : undefined}
+      style={{ touchAction: viewMode === "week" ? "none" : "auto" }}
+    >
       {renderControls()}
       {loading ? (
-        <div className="space-y-4 mt-6">
-          {Array.from({ length: viewMode === "week" ? 7 : 21 }).map(
-            (_, idx) => (
-              <div
-                key={idx}
-                className="h-20 rounded-lg bg-[#343E44] animate-pulse"
-              ></div>
-            )
-          )}
+        <div className="min-h-screen bg-[#242B2F] flex items-center justify-center">
+          <div className="animate-spin rounded-full h-10 w-10 border-t-2 border-b-2 border-pink-400"></div>
         </div>
       ) : (
-        <div className="space-y-6 mt-2">
-          {viewMode === "month"
-            ? renderGridDays(daysThisMonth)
-            : viewMode === "week"
+        <motion.div
+          className="space-y-6 mt-2"
+          drag="y"
+          dragConstraints={{ top: 0, bottom: 0 }}
+          dragElastic={0.2}
+          onDragEnd={(_, info) => {
+            if (info.offset.y > 50) handlePrevious();
+            else if (info.offset.y < -50) handleNext();
+          }}
+        >
+          {viewMode === "week"
             ? renderStackedDays(daysThisWeek)
-            : Object.entries(groupedByMonth).map(([month, dates]) => (
-                <div key={month} ref={(el) => (monthRefs.current[month] = el)}>
-                  <h2 className="text-lg font-semibold text-[#C63663] mb-2">
-                    {new Date(`${month} 1`).toLocaleDateString("en-US", {
-                      month: "long",
-                      year: "numeric",
-                    })}
-                  </h2>
-                  {renderGridDays(dates)}
-                </div>
-              ))}
-        </div>
+            : renderGridDays(daysThisMonth)}
+        </motion.div>
       )}
     </div>
   );

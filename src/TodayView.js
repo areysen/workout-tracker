@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { useAuth } from "./AuthContext";
 import { useNavigate } from "react-router-dom";
 import {
   fetchWorkoutLogs,
@@ -64,6 +65,7 @@ function getRandomCoachBotTip(muscleGroup = "") {
 }
 
 export default function TodayView() {
+  const { user } = useAuth();
   const [todayLog, setTodayLog] = useState(null);
   const [loading, setLoading] = useState(true);
   const [showChat, setShowChat] = useState(false);
@@ -137,7 +139,10 @@ export default function TodayView() {
 
   return (
     <div className="min-h-screen bg-[#242B2F] p-4 max-w-3xl mx-auto text-white">
-      <h1 className="text-3xl font-bold mb-1">👋 Welcome Back, Andrew!</h1>
+      <h1 className="text-3xl font-bold mb-1">
+        👋 Welcome Back,{" "}
+        {user?.user_metadata?.full_name || user?.email || "there"}!
+      </h1>
       <p className="text-md text-gray-300 mb-6">📅 Today is {formattedDate}</p>
 
       {loading ? (

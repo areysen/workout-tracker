@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { supabase } from "./supabaseClient";
 import { useAuth } from "./AuthContext";
 import { useNavigate } from "react-router-dom";
 import {
@@ -66,6 +67,7 @@ function getRandomCoachBotTip(muscleGroup = "") {
 
 export default function TodayView() {
   const { user } = useAuth();
+  const [hasProfile, setHasProfile] = useState(undefined);
   const [todayLog, setTodayLog] = useState(null);
   const [loading, setLoading] = useState(true);
   const [showChat, setShowChat] = useState(false);
@@ -73,6 +75,41 @@ export default function TodayView() {
   const [showBarcodeModal, setShowBarcodeModal] = useState(false);
   const [currentStreak, setCurrentStreak] = useState(0);
   const [bestStreak, setBestStreak] = useState(0);
+  const [profileData, setProfileData] = useState(null);
+
+  useEffect(() => {
+    const fetchProfile = async () => {
+      if (!user?.id) return;
+      console.log("Auth User ID:", user.id);
+
+      const { data, error } = await supabase
+        .from("profiles")
+        .select("user_id")
+        .eq("user_id", user.id)
+        .maybeSingle();
+
+      if (error) {
+        console.error("Error fetching profile:", error);
+        setHasProfile(false);
+      } else {
+        setHasProfile(!!data);
+      }
+    };
+    fetchProfile();
+  }, [user]);
+
+  useEffect(() => {
+    if (hasProfile) {
+      supabase
+        .from("profiles")
+        .select("first_name, full_name")
+        .eq("user_id", user.id)
+        .single()
+        .then(({ data }) => setProfileData(data))
+        .catch(console.error);
+    }
+  }, [hasProfile, user]);
+
   const navigate = useNavigate();
   const { showToast } = useToast();
   const today = getToday();
@@ -137,11 +174,33 @@ export default function TodayView() {
     loadStreak();
   }, []);
 
+  if (hasProfile === false) {
+    return (
+      <div className="fixed inset-0 bg-black bg-opacity-75 flex flex-col items-center justify-center z-50">
+        <div className="bg-[#343E44] p-6 rounded-lg text-center">
+          <h2 className="text-xl font-semibold text-white mb-4">
+            Let’s finish setting up your account
+          </h2>
+          <button
+            className="px-6 py-3 bg-gradient-to-r from-pink-500 to-pink-700 rounded-2xl text-white font-bold"
+            onClick={() => navigate("/setup")}
+          >
+            Go to Setup
+          </button>
+        </div>
+      </div>
+    );
+  }
   return (
     <div className="min-h-screen bg-[#242B2F] p-4 max-w-3xl mx-auto text-white">
       <h1 className="text-3xl font-bold mb-1">
         👋 Welcome Back,{" "}
-        {user?.user_metadata?.full_name || user?.email || "there"}!
+        {profileData?.first_name ||
+          profileData?.full_name ||
+          user?.user_metadata?.full_name ||
+          user?.email ||
+          "there"}
+        !
       </h1>
       <p className="text-md text-gray-300 mb-6">📅 Today is {formattedDate}</p>
 

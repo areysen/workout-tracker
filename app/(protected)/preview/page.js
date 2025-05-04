@@ -1,6 +1,8 @@
 "use client";
+export const dynamic = "force-dynamic";
 import { useRouter, useSearchParams } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect, useState, Suspense } from "react";
+import SearchParamHandler from "@/components/SearchParamHandler";
 import { motion } from "framer-motion";
 import { supabase } from "@/lib/supabaseClient";
 import { getWeekday, formatDateWithOptions, getToday } from "@/lib/utils";
@@ -9,9 +11,8 @@ import { useToast } from "@/components/ToastContext";
 import ConfirmModal from "@/components/ConfirmModal";
 
 function PreviewView() {
-  const searchParams = useSearchParams();
   const router = useRouter();
-  const date = searchParams.get("date");
+  const [date, setDate] = useState(null);
   const today = getToday();
   const [logForDate, setLogForDate] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -21,6 +22,54 @@ function PreviewView() {
   const [todayHasLog, setTodayHasLog] = useState(false);
   const [forecastTemplateId, setForecastTemplateId] = useState(null);
 
+  return (
+    <>
+      <Suspense fallback={null}>
+        <SearchParamHandler param="date" onResult={setDate} />
+      </Suspense>
+
+      {date && (
+        <PreviewContent
+          date={date}
+          today={today}
+          logForDate={logForDate}
+          setLogForDate={setLogForDate}
+          loading={loading}
+          setLoading={setLoading}
+          showToast={showToast}
+          showConfirmSkip={showConfirmSkip}
+          setShowConfirmSkip={setShowConfirmSkip}
+          todaySkipped={todaySkipped}
+          setTodaySkipped={setTodaySkipped}
+          todayHasLog={todayHasLog}
+          setTodayHasLog={setTodayHasLog}
+          forecastTemplateId={forecastTemplateId}
+          setForecastTemplateId={setForecastTemplateId}
+          router={router}
+        />
+      )}
+    </>
+  );
+}
+
+function PreviewContent({
+  date,
+  today,
+  logForDate,
+  setLogForDate,
+  loading,
+  setLoading,
+  showToast,
+  showConfirmSkip,
+  setShowConfirmSkip,
+  todaySkipped,
+  setTodaySkipped,
+  todayHasLog,
+  setTodayHasLog,
+  forecastTemplateId,
+  setForecastTemplateId,
+  router,
+}) {
   useEffect(() => {
     async function fetchWorkoutLog() {
       setLoading(true);
@@ -100,7 +149,7 @@ function PreviewView() {
     }
 
     fetchWorkoutLog();
-  }, [date]);
+  }, [date, setLoading, setLogForDate, setForecastTemplateId]);
 
   useEffect(() => {
     async function fetchTodayEntry() {
@@ -118,7 +167,7 @@ function PreviewView() {
       }
     }
     fetchTodayEntry();
-  }, [today]);
+  }, [today, setTodaySkipped, setTodayHasLog]);
 
   const [scrolled, setScrolled] = useState(false);
 

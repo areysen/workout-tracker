@@ -24,4 +24,6 @@ repo-structure.txt
 /coverage
 
 # local environment settings
-.env.env.local
+.env.local
+.vercel
+.env*.local

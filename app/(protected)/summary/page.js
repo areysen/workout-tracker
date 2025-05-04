@@ -1,5 +1,6 @@
 "use client";
-import React, { useEffect, useState, useRef } from "react";
+export const dynamic = "force-dynamic";
+import React, { useEffect, useState, useRef, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { supabase } from "@/lib/supabaseClient";
 import { getToday, formatDateWithOptions, getWeekday } from "@/lib/utils";
@@ -7,13 +8,13 @@ import BackButton from "@/components/BackButton";
 import ConfirmModal from "@/components/ConfirmModal";
 import { useToast } from "@/components/ToastContext";
 import { motion } from "framer-motion";
+import SearchParamHandler from "@/components/SearchParamHandler";
 
 export default function SummaryView() {
   const router = useRouter();
-  const searchParams = useSearchParams();
-  const date = searchParams.get("date");
+  const [date, setDate] = useState(null);
   const today = getToday();
-  const formattedDate = formatDateWithOptions(date);
+  const formattedDate = date ? formatDateWithOptions(date) : "";
   const isToday = date === today;
   const { showToast } = useToast();
   const [logEntry, setLogEntry] = useState(null);
@@ -21,6 +22,10 @@ export default function SummaryView() {
   const undoTimer = useRef(null);
   const [scrolled, setScrolled] = useState(false);
   const [loading, setLoading] = useState(true);
+
+  <Suspense fallback={null}>
+    <SearchParamHandler param="date" onResult={setDate} />
+  </Suspense>;
 
   useEffect(() => {
     const handleScroll = () => {

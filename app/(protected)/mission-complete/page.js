@@ -1,11 +1,13 @@
 "use client";
-import { useRouter, useSearchParams } from "next/navigation";
+export const dynamic = "force-dynamic";
+import { Suspense, useState, useEffect } from "react";
+import SearchParamHandler from "@/components/SearchParamHandler";
+import { useRouter } from "next/navigation";
 import {
   fetchWorkoutLogsForLastNDays,
   computeCurrentStreak,
 } from "@/lib/supabaseClient";
 import Confetti from "react-confetti";
-import { useEffect, useState } from "react";
 function useWindowSize() {
   const [size, setSize] = useState([0, 0]);
 
@@ -31,8 +33,7 @@ const motivationalMessages = [
 ];
 export default function MissionCompleteView() {
   const router = useRouter();
-  const searchParams = useSearchParams();
-  const type = searchParams.get("type") || "completed";
+  const [type, setType] = useState("completed");
   const isCompleted = type === "completed";
   const [motivation, setMotivation] = useState("");
 
@@ -101,6 +102,13 @@ export default function MissionCompleteView() {
 
   return (
     <div className="min-h-screen bg-[#242B2F] flex flex-col items-center justify-center text-white p-6 text-center relative overflow-hidden">
+      <Suspense fallback={null}>
+        <SearchParamHandler
+          param="type"
+          fallback="completed"
+          onResult={setType}
+        />
+      </Suspense>
       {confettiPieces > 0 && (
         <Confetti
           width={width}

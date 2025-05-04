@@ -1,4 +1,5 @@
 "use client";
+export const dynamic = "force-dynamic";
 import React, { useEffect, useState } from "react";
 
 export default function CardioTimer({ work, rest, sets, onComplete }) {

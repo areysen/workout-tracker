@@ -1,4 +1,5 @@
 "use client";
+export const dynamic = "force-dynamic";
 import { createContext, useContext, useState, useEffect } from "react";
 
 const ToastContext = createContext();

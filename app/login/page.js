@@ -1,5 +1,6 @@
 // src/LoginView.js
 "use client";
+export const dynamic = "force-dynamic";
 import React, { useState } from "react";
 import { useAuth } from "@/lib/AuthContext";
 import Image from "next/image";

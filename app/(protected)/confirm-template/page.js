@@ -316,7 +316,7 @@ function PreferencesModal({
         cardio_preference: localProfile.cardio_preference,
         preferred_rest_days: localProfile.preferred_rest_days || [],
       };
-      const response = await fetch("/api/generate-template", {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_BASE_URL || ''}/api/generate-template`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(apiProfile),

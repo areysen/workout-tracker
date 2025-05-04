@@ -99,7 +99,7 @@ This helper wraps pages that use `useSearchParams()` to avoid static export erro
 - [ ] Expanded insights, trends, and gamified XP
 - [ ] Custom workout templates and smarter logging
 - [ ] Integrated meal planning and recovery nutrition
-
+<!-- Test PR to trigger Vercel check -->
 ## License
 
 This project is currently private and intended for personal use only. No license is granted for redistribution.

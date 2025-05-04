@@ -98,7 +98,7 @@ function SetupView() {
 
   // Helper function to generate workout template from AI endpoint
   const generateWorkoutTemplate = async (profile) => {
-    const response = await fetch("/api/generate-template", {
+    const response = await fetch(`${process.env.NEXT_PUBLIC_BASE_URL || ''}/api/generate-template`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(profile),

@@ -10,14 +10,17 @@ export default function LoginView() {
   const [email, setEmail] = useState("");
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState(null);
+  const [isSignUp, setIsSignUp] = useState(false);
   const { signInWithMagicLink, signInWithProvider } = useAuth();
   const router = useRouter();
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
+
     let result;
     result = await signInWithMagicLink(email);
+    const result = await signInWithMagicLink(email);
     const { error } = result;
     if (error) {
       setMessage({ type: "error", text: error.message });
@@ -83,6 +86,7 @@ export default function LoginView() {
           className="w-full py-2 rounded-2xl bg-gradient-to-r from-pink-500 to-pink-700 text-white shadow-glow hover:shadow-glow-hover transition"
         >
           {loading ? "Sending…" : "Email me a link"}
+          {loading ? "Sending…" : isSignUp ? "Sign Up" : "Email me a link"}
         </button>
       </form>
     </div>

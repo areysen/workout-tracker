@@ -9,6 +9,7 @@ repo-structure.txt
 # builds
 /build
 /dist
+.next
 
 # Capacitor native projects
 /android

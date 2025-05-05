@@ -17,9 +17,6 @@ export default function LoginView() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
-
-    let result;
-    result = await signInWithMagicLink(email);
     const result = await signInWithMagicLink(email);
     const { error } = result;
     if (error) {

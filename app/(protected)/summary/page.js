@@ -23,10 +23,6 @@ export default function SummaryView() {
   const [scrolled, setScrolled] = useState(false);
   const [loading, setLoading] = useState(true);
 
-  <Suspense fallback={null}>
-    <SearchParamHandler param="date" onResult={setDate} />
-  </Suspense>;
-
   useEffect(() => {
     const handleScroll = () => {
       if (window.scrollY > 10) {
@@ -41,12 +37,18 @@ export default function SummaryView() {
   }, []);
 
   useEffect(() => {
+    const searchParams = new URLSearchParams(window.location.search);
+    const dateParam = searchParams.get("date");
+    if (!dateParam) return;
+
+    setDate(dateParam);
+
     const fetchData = async () => {
       setLoading(true);
       const { data, error } = await supabase
         .from("workout_logs")
         .select("*")
-        .eq("date", date);
+        .eq("date", dateParam);
 
       if (error) {
         console.error("Error loading workout summary:", error);
@@ -59,7 +61,7 @@ export default function SummaryView() {
     };
 
     fetchData();
-  }, [date]);
+  }, []);
 
   const undoDelete = () => {
     clearTimeout(undoTimer.current);
@@ -97,6 +99,9 @@ export default function SummaryView() {
 
   return (
     <div className="min-h-screen bg-[#242B2F] text-white p-4 max-w-3xl mx-auto">
+      <Suspense fallback={null}>
+        <SearchParamHandler param="date" onResult={setDate} />
+      </Suspense>
       <div className="sticky top-0 z-10 bg-[#242B2F] pb-4">
         <div className="flex justify-between items-center flex-wrap gap-3">
           <BackButton />

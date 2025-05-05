@@ -59,7 +59,6 @@ export default function LoginView() {
 
   return (
     <div className="min-h-screen flex flex-col items-center justify-center bg-[#242B2F] p-4">
-      <p>Current Base URL: {process.env.NEXT_PUBLIC_BASE_URL}</p>
       <form
         onSubmit={handleSubmit}
         className="bg-[#343E44] p-6 rounded-lg w-full max-w-sm space-y-4"

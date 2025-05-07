@@ -9,9 +9,6 @@ export default function HomeRedirectPage() {
   const router = useRouter();
 
   useEffect(() => {
-    console.log("user:", user);
-    console.log("hasProfile:", hasProfile);
-
     if (user === null) {
       router.replace("/login");
     } else if (user && hasProfile === false) {

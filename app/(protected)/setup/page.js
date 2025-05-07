@@ -98,11 +98,14 @@ function SetupView() {
 
   // Helper function to generate workout template from AI endpoint
   const generateWorkoutTemplate = async (profile) => {
-    const response = await fetch(`${process.env.NEXT_PUBLIC_BASE_URL || ''}/api/generate-template`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(profile),
-    });
+    const response = await fetch(
+      `${process.env.NEXT_PUBLIC_BASE_URL || ""}/api/generate-template`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(profile),
+      }
+    );
     if (!response.ok) {
       const errorText = await response.text();
       console.error("Template generation failed:", errorText);
@@ -171,7 +174,6 @@ function SetupView() {
         preferred_rest_days: preferredRestDays,
       };
       const template = await generateWorkoutTemplate(profile);
-      console.log("🎯 AI Generated Template:", template);
 
       // First delete existing templates
       const { error: deleteError } = await supabase

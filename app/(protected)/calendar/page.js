@@ -138,38 +138,9 @@ export default function CalendarView() {
       selectedDate.getMonth() === today.getMonth() &&
       selectedDate.getFullYear() === today.getFullYear());
 
-  // NOTE: The below useEffect relied on location.state, but Next.js's useRouter/usePathname
-  // do not support navigation state. You may need to replace this logic with query params or context.
-  /*
-  useEffect(() => {
-    if (
-      location?.state?.previousViewMode &&
-      location.state.previousViewMode !== "persist"
-    ) {
-      setViewMode(location.state.previousViewMode);
-    }
-    if (location?.state?.previousSelectedDate) {
-      setSelectedDate(new Date(location.state.previousSelectedDate));
-    }
-  }, [location?.state]);
-  */
-
   useEffect(() => {
     window.lastViewMode = viewMode;
   }, [viewMode]);
-
-  /*
-  useEffect(() => {
-    if (location?.state?.showToast) {
-      console.log(
-        "[CalendarView] showToast triggered:",
-        location.state.showToast
-      );
-      showToast(location.state.showToast);
-    }
-    // eslint-disable-next-line
-  }, [location?.state, showToast]);
-  */
 
   // Move fetchWorkoutLogs and fetchWorkoutTemplates outside useEffect for reuse
   async function fetchWorkoutLogs() {
@@ -209,19 +180,17 @@ export default function CalendarView() {
     }
   }, [viewMode]);
 
-  const handleClick = (date) => {
-    const formatted = formatDateForDisplay(date);
-    setSelectedDate(date);
+  const handleClick = (rawDate) => {
+    const formatted = formatDateForDisplay(rawDate);
     const log = workoutLogs.find((l) => l.date === formatted);
-    // NOTE: Next.js router does not support navigation state.
-    // If you need to pass previousViewMode/previousSelectedDate, use query params or context.
+    setSelectedDate(rawDate);
     if (log?.skipped) {
       router.push(`/summary?date=${formatted}`);
     } else if (log && !log.forecast) {
       router.push(`/summary?date=${formatted}`);
     } else if (log?.forecast) {
       router.push(`/preview?date=${formatted}`);
-    } else if (!log && isBefore(date, today) && !isToday(date)) {
+    } else if (!log && isBefore(rawDate, today) && !isToday(rawDate)) {
       router.push(`/summary?date=${formatted}`);
     } else {
       router.push(`/preview?date=${formatted}`);

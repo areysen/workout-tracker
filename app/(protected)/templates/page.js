@@ -73,16 +73,18 @@ export default function TemplateListView() {
                   : "No day assigned"}
               </p>
             </div>
-            <button
-              onClick={() =>
-                router.push(
-                  `/log-workout?templateId=${tpl.id}&fromTemplate=true`
-                )
-              }
-              className="bg-transparent border border-white text-white font-bold py-2 px-4 rounded hover:bg-white hover:text-[#242B2F] transition"
-            >
-              Start
-            </button>
+            {tpl.workout_name && tpl.workout_name.toLowerCase() !== "rest" && (
+              <button
+                onClick={() =>
+                  router.push(
+                    `/log-workout?templateId=${tpl.id}&fromTemplate=true`
+                  )
+                }
+                className="bg-transparent border border-white text-white font-bold py-2 px-4 rounded hover:bg-white hover:text-[#242B2F] transition"
+              >
+                Start
+              </button>
+            )}
           </li>
         ))}
       </ul>

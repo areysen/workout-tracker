@@ -100,6 +100,18 @@ export default function LogWorkoutView() {
 
         if (template && template.length > 0) {
           const firstTemplate = template[0];
+          // Detect rest day (by muscle_group)
+          const isRestDay =
+            firstTemplate.muscle_group?.toLowerCase() === "rest";
+          if (isRestDay) {
+            setLog({
+              date: today,
+              muscle_group: firstTemplate.workout_name,
+              day: getWeekday(today),
+            });
+            setLoading(false);
+            return;
+          }
           const sections = ["warmup", "main", "cooldown"];
           // Build structuredData, preserving all flags and including rounds/rest/work/duration for all
           const structuredData = sections.flatMap((section) =>
@@ -157,16 +169,26 @@ export default function LogWorkoutView() {
   // Template loading effect
   useEffect(() => {
     if (!templateId) return;
-    setLoading(true);
+
     (async () => {
       const { data: template, error } = await supabase
         .from("workout_templates")
         .select("*")
         .eq("id", templateId)
         .maybeSingle();
+
       if (error) {
         console.error("Error loading template:", error);
       } else if (template) {
+        // Skip loading rest templates
+        if (
+          template.workout_name?.toLowerCase() === "rest" ||
+          template.muscle_group?.toLowerCase() === "rest"
+        ) {
+          setLoading(false);
+          return;
+        }
+
         let exercises = template.exercises;
         if (typeof exercises === "string") {
           try {
@@ -182,12 +204,13 @@ export default function LogWorkoutView() {
           });
         });
         setFormData(flat);
-        setLog({
+        setLog((prevLog) => ({
+          ...prevLog,
           id: null,
           date: today,
           muscle_group: template.workout_name,
           day: getWeekday(today),
-        });
+        }));
       }
       setLoading(false);
     })();

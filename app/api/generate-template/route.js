@@ -78,7 +78,6 @@ User Profile:
     const cleanText = textResponse.replace(/^```json|```$/g, "").trim();
 
     const parsed = JSON.parse(cleanText);
-    console.log("✅ Parsed AI Template:", parsed);
 
     return new Response(JSON.stringify(parsed), {
       status: 200,

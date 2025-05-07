@@ -83,7 +83,6 @@ export default function TodayView() {
   useEffect(() => {
     const fetchProfile = async () => {
       if (!user?.id) return;
-      console.log("Auth User ID:", user.id);
 
       const { data, error } = await supabase
         .from("profiles")
@@ -133,11 +132,19 @@ export default function TodayView() {
     const logs = await fetchWorkoutLogs();
     let todayMatch = logs.find((log) => log.date === today);
 
+    if (todayMatch?.rest_day) {
+      setTodayLog(todayMatch);
+      setLoading(false);
+      return;
+    }
+
     if (!todayMatch) {
       const localDate = new Date();
       const weekday = localDate
         .toLocaleDateString("en-US", { weekday: "long" })
         .toLowerCase();
+      const capitalizedWeekday =
+        weekday.charAt(0).toUpperCase() + weekday.slice(1);
       const { supabase } = await import("@/lib/supabaseClient");
       const { data: templates, error: tplError } = await supabase
         .from("workout_templates")
@@ -145,16 +152,46 @@ export default function TodayView() {
         .eq("day_of_week", weekday);
 
       if (!tplError && templates && templates.length > 0) {
-        todayMatch = {
-          date: today,
-          forecast: true,
-          muscle_group: templates[0].muscle_group,
-          workout_name: templates[0].workout_name,
-        };
+        const template = templates[0];
+        const isRestDay = template.muscle_group?.toLowerCase() === "rest";
+
+        if (isRestDay) {
+          const { error: insertError } = await supabase
+            .from("workout_logs")
+            .insert([
+              {
+                date: today,
+                rest_day: true,
+                forecast: false,
+                skipped: false,
+                muscle_group: template.workout_name,
+                // workout_name: template.workout_name, // Removed as per instructions
+                day: capitalizedWeekday,
+              },
+            ]);
+
+          if (!insertError) {
+            todayMatch = {
+              date: today,
+              rest_day: true,
+              muscle_group: template.workout_name,
+              forecast: false,
+              day: capitalizedWeekday,
+            };
+          }
+        } else {
+          todayMatch = {
+            date: today,
+            forecast: true,
+            muscle_group: template.muscle_group,
+            workout_name: template.workout_name,
+          };
+        }
       }
     }
 
     setTodayLog(todayMatch || null);
+
     setLoading(false);
   };
 
@@ -175,6 +212,10 @@ export default function TodayView() {
     loadStreak();
   }, []);
 
+  const isRestDay =
+    todayLog?.rest_day === true ||
+    (todayLog?.forecast === true && todayLog?.muscle_group === "rest");
+
   if (hasProfile === false) {
     return (
       <div className="fixed inset-0 bg-black bg-opacity-75 flex flex-col items-center justify-center z-50">
@@ -192,6 +233,7 @@ export default function TodayView() {
       </div>
     );
   }
+  const hasAnyCompletedWorkouts = bestStreak > 0;
   return (
     <div className="min-h-screen bg-[#242B2F] p-4 max-w-3xl mx-auto text-white">
       <h1 className="text-3xl font-bold mb-1">
@@ -205,80 +247,94 @@ export default function TodayView() {
       </h1>
       <p className="text-md text-gray-300 mb-6">📅 Today is {formattedDate}</p>
 
-      {loading ? (
-        <div className="bg-[#2E353A] p-6 rounded-2xl mb-8 border border-pink-400 flex justify-center items-center h-40 shadow-glow">
-          <div className="animate-spin rounded-full h-10 w-10 border-t-2 border-b-2 border-pink-400"></div>
-        </div>
-      ) : (
-        todayLog && (
-          <div className="bg-[#2E353A] p-6 rounded-2xl mb-8 border border-pink-400 shadow-glow hover:shadow-glow-hover transition duration-300 text-center">
-            <h2 className="text-2xl font-extrabold mb-2 text-pink-400">
-              {todayLog.skipped ? "🏖️ Recovery Day" : "🎯 Today's Mission"}
-            </h2>
-            <p className="text-lg mb-4 font-semibold">
-              {todayLog.skipped
-                ? `Workout Skipped: ${todayLog.muscle_group || "Workout"}`
-                : todayLog.forecast
-                ? `Planned Workout: ${todayLog.workout_name || "Workout"}`
-                : `Completed Workout: ${todayLog.muscle_group || "Workout"}`}
-            </p>
-            <p className="text-sm text-gray-400 italic">
-              {getRandomCoachBotTip(todayLog?.muscle_group)}
-            </p>
+      {!isRestDay &&
+        (loading ? (
+          <div className="bg-[#2E353A] p-6 rounded-2xl mb-6 border border-pink-400 flex justify-center items-center h-40 shadow-glow">
+            <div className="animate-spin rounded-full h-10 w-10 border-t-2 border-b-2 border-pink-400"></div>
           </div>
-        )
+        ) : (
+          todayLog && (
+            <div className="bg-[#2E353A] p-6 rounded-2xl mb-6 border border-pink-400 shadow-glow hover:shadow-glow-hover transition duration-300 text-center">
+              <h2 className="text-2xl font-extrabold mb-2 text-pink-400">
+                {todayLog.skipped ? "🏖️ Recovery Day" : "🎯 Today's Mission"}
+              </h2>
+              <p className="text-lg mb-4 font-semibold">
+                {todayLog.skipped
+                  ? `Workout Skipped: ${todayLog.muscle_group || "Workout"}`
+                  : todayLog.forecast
+                  ? `Planned Workout: ${todayLog.workout_name || "Workout"}`
+                  : `Completed Workout: ${todayLog.muscle_group || "Workout"}`}
+              </p>
+              <p className="text-sm text-gray-400 italic">
+                {getRandomCoachBotTip(todayLog?.muscle_group)}
+              </p>
+            </div>
+          )
+        ))}
+
+      {!isRestDay && (
+        <div className="flex flex-col gap-4 mb-6">
+          {todayLog?.skipped ? (
+            <button
+              disabled
+              className="bg-[#4A5568] text-white py-3 px-6 rounded-2xl font-semibold shadow-glow hover:shadow-glow-hover transition duration-300 text-center"
+            >
+              Skipped
+            </button>
+          ) : todayLog?.forecast ? (
+            <>
+              <button
+                className="bg-gradient-to-r from-pink-500 to-pink-700 text-white py-3 px-6 rounded-2xl font-bold text-lg shadow-glow hover:shadow-glow-hover transition duration-300"
+                onClick={() => {
+                  const query =
+                    todayLog?.forecast && todayLog?.template_id
+                      ? `?templateId=${todayLog.template_id}`
+                      : "";
+                  router.push(`/log-workout${query}`);
+                }}
+              >
+                Start Workout
+              </button>
+              <button
+                className="bg-gradient-to-r from-pink-600 to-red-600 text-white py-3 px-6 rounded-2xl font-bold text-lg shadow-glow hover:shadow-glow-hover transition duration-300"
+                onClick={() => setShowConfirmSkip(true)}
+              >
+                Skip Today
+              </button>
+            </>
+          ) : (
+            <>
+              <button
+                className="bg-gradient-to-r from-pink-500 to-pink-700 text-white py-3 px-6 rounded-2xl font-bold text-lg shadow-glow hover:shadow-glow-hover transition duration-300"
+                onClick={() =>
+                  router.push(`/summary/${today}`, {
+                    state: { fromTodayView: true },
+                  })
+                }
+              >
+                View Summary
+              </button>
+            </>
+          )}
+        </div>
       )}
 
-      <div className="flex flex-col gap-4 mb-6">
-        {todayLog?.skipped ? (
+      {isRestDay && (
+        <div className="bg-[#2E353A] p-6 rounded-2xl mb-6 border border-pink-400 shadow-glow hover:shadow-glow-hover transition duration-300 text-center">
+          <h2 className="text-2xl font-extrabold mb-2 text-pink-400">
+            🛌 Scheduled Rest Day
+          </h2>
+          <p className="text-lg mb-4 font-semibold">
+            Recharge and recover — you’ve earned it.
+          </p>
           <button
-            disabled
-            className="bg-[#4A5568] text-white py-3 px-6 rounded-2xl font-semibold shadow-glow hover:shadow-glow-hover transition duration-300 text-center"
+            className="bg-[#4A5568] text-white py-2 px-4 rounded-xl text-sm"
+            onClick={() => router.push("/templates")}
           >
-            Skipped
+            View Workout Templates
           </button>
-        ) : todayLog?.forecast ? (
-          <>
-            <button
-              className="bg-gradient-to-r from-pink-500 to-pink-700 text-white py-3 px-6 rounded-2xl font-bold text-lg shadow-glow hover:shadow-glow-hover transition duration-300"
-              onClick={() => {
-                const query =
-                  todayLog?.forecast && todayLog?.template_id
-                    ? `?templateId=${todayLog.template_id}`
-                    : "";
-                router.push(`/log-workout${query}`);
-              }}
-            >
-              Start Workout
-            </button>
-            <button
-              className="bg-gradient-to-r from-pink-600 to-red-600 text-white py-3 px-6 rounded-2xl font-bold text-lg shadow-glow hover:shadow-glow-hover transition duration-300"
-              onClick={() => setShowConfirmSkip(true)}
-            >
-              Skip Today
-            </button>
-          </>
-        ) : (
-          <>
-            <button
-              className="bg-gradient-to-r from-pink-500 to-pink-700 text-white py-3 px-6 rounded-2xl font-bold text-lg shadow-glow hover:shadow-glow-hover transition duration-300"
-              onClick={() =>
-                router.push(`/summary/${today}`, {
-                  state: { fromTodayView: true },
-                })
-              }
-            >
-              View Summary
-            </button>
-          </>
-        )}
-        <button
-          className="flex items-center justify-center bg-gradient-to-r from-indigo-500 to-indigo-700 text-white py-3 px-6 rounded-2xl font-semibold shadow-glow hover:shadow-glow-hover transition duration-300"
-          onClick={() => router.push("/calendar")}
-        >
-          📅 View Calendar
-        </button>
-      </div>
+        </div>
+      )}
 
       <div className="bg-[#2E353A] p-6 rounded-2xl mb-6 border border-pink-400 shadow-glow hover:shadow-glow-hover transition duration-300 text-center">
         {loading ? (
@@ -291,27 +347,29 @@ export default function TodayView() {
             <h2 className="text-lg font-semibold mb-2 text-gray-300">
               📈 Your Progress
             </h2>
-            {currentStreak > 0 ? (
-              <p className="text-gray-200">
-                🔥 Current Streak:{" "}
-                <span className="font-bold">{currentStreak} days</span>
-              </p>
+            {hasAnyCompletedWorkouts ? (
+              <>
+                {currentStreak > 0 && (
+                  <p className="text-gray-200">
+                    🔥 Current Streak:{" "}
+                    <span className="font-bold">{currentStreak} days</span>
+                  </p>
+                )}
+                <p className="text-gray-200 mt-1">
+                  🏆 Best Streak:{" "}
+                  <span className="font-bold">{bestStreak} days</span>
+                </p>
+              </>
             ) : (
               <p className="text-gray-200">
                 👣 Log your first workout to start your streak!
-              </p>
-            )}
-            {bestStreak > 0 && (
-              <p className="text-gray-200 mt-1">
-                🏆 Best Streak:{" "}
-                <span className="font-bold">{bestStreak} days</span>
               </p>
             )}
           </>
         )}
       </div>
 
-      <div className="mt-6 p-6 bg-[#2E353A] rounded-2xl border border-pink-400 shadow-glow hover:shadow-glow-hover transition duration-300 text-center">
+      <div className="bg-[#2E353A] p-6 rounded-2xl mb-6 border border-pink-400 shadow-glow hover:shadow-glow-hover transition duration-300 text-center">
         <h2 className="text-lg font-bold mb-2 text-pink-400">⚡ Shortcuts</h2>
         <div className="flex flex-col gap-3">
           <button
@@ -349,10 +407,16 @@ export default function TodayView() {
           >
             🗂 Templates
           </button>
+          <button
+            className="flex items-center justify-center bg-gradient-to-r from-green-600 to-green-800 text-white py-3 px-6 rounded-2xl font-semibold shadow-glow hover:shadow-glow-hover transition duration-300"
+            onClick={() => router.push("/calendar")}
+          >
+            📅 View Calendar
+          </button>
         </div>
       </div>
 
-      <div className="mt-6 p-6 bg-[#2E353A] rounded-2xl border border-pink-400 shadow-glow hover:shadow-glow-hover transition duration-300 text-center">
+      <div className="bg-[#2E353A] p-6 rounded-2xl mb-6 border border-pink-400 shadow-glow hover:shadow-glow-hover transition duration-300 text-center">
         <h2 className="text-lg font-bold mb-2 text-pink-400">
           🤖 CoachBot Tip
         </h2>
@@ -380,7 +444,7 @@ export default function TodayView() {
               date: today,
               forecast: false,
               skipped: true,
-              muscle_group: todayLog?.workout_name || "",
+              muscle_group: todayLog?.muscle_group || "",
               day: getWeekday(today),
             },
           ]);

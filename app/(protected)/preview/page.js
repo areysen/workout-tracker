@@ -135,7 +135,8 @@ function PreviewContent({
           setLogForDate({
             date,
             exercises: structured,
-            muscle_group: template.workout_name,
+            muscle_group: template.muscle_group?.toLowerCase(),
+            workout_name: template.workout_name,
             hasLoggedWorkout: false,
           });
           setForecastTemplateId(template.id);
@@ -184,6 +185,11 @@ function PreviewContent({
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
 
+  const isRestDay = !!(
+    logForDate?.rest_day === true ||
+    logForDate?.muscle_group?.toLowerCase() === "rest"
+  );
+
   const dayName = logForDate?.date
     ? formatDateWithOptions(logForDate.date, { weekday: "long" })
     : "";
@@ -217,11 +223,27 @@ function PreviewContent({
       </div>
 
       <div className="pb-52">
+        {isRestDay && (
+          <div className="mt-4 bg-[#2E353A] p-6 rounded-2xl mb-8 border border-pink-400 shadow-glow text-center">
+            <h2 className="text-2xl font-extrabold mb-2 text-pink-400">
+              🧘 Rest Day
+            </h2>
+            <p className="text-lg mb-4 font-semibold">
+              No workout today — take time to recover!
+            </p>
+            <button
+              className="bg-[#4A5568] text-white py-2 px-4 rounded-xl text-sm"
+              onClick={() => router.push("/templates")}
+            >
+              View Workout Templates
+            </button>
+          </div>
+        )}
         <div className="space-y-3">
-          {logForDate && (
+          {logForDate && !isRestDay && (
             <h2 className="text-xl font-semibold text-pink-400 mb-4">
               {getWeekday(date)}
-              {logForDate.muscle_group ? ` — ${logForDate.muscle_group}` : ""}
+              {logForDate.workout_name ? ` — ${logForDate.workout_name}` : ""}
             </h2>
           )}
 
@@ -275,47 +297,49 @@ function PreviewContent({
       </div>
       <>
         <div className="pb-52"></div>
-        <div className="fixed bottom-0 left-0 w-full bg-[#242B2F] p-4 space-y-3 z-10 max-w-3xl mx-auto">
-          <button
-            onClick={() => {
-              if (logForDate?.id) {
-                // you’re editing an existing log for today
-                router.push("/log-workout?fromPreview=true");
-              } else if (forecastTemplateId) {
-                // you’re starting a forecast, so hand off the template
-                router.push(
-                  `/log-workout?templateId=${forecastTemplateId}&fromPreview=true`
-                );
-              }
-            }}
-            className="w-full bg-gradient-to-r from-pink-500 to-pink-700 text-white font-bold py-2 px-4 rounded-2xl shadow-glow hover:shadow-glow-hover transition duration-300 text-center"
-          >
-            Start Workout
-          </button>
-          {/* Show Skip Day, Skipped, or Logged button based on today's status */}
-          {!todaySkipped && !todayHasLog ? (
+        {date === today && !isRestDay && (
+          <div className="fixed bottom-0 left-0 w-full bg-[#242B2F] p-4 space-y-3 z-10 max-w-3xl mx-auto">
             <button
-              onClick={() => setShowConfirmSkip(true)}
-              className="w-full bg-gradient-to-br from-pink-600 to-red-600 text-white font-bold py-2 px-4 rounded-2xl shadow-glow hover:shadow-glow-hover transition duration-300 text-center"
+              onClick={() => {
+                if (logForDate?.id) {
+                  // you’re editing an existing log for today
+                  router.push("/log-workout?fromPreview=true");
+                } else if (forecastTemplateId) {
+                  // you’re starting a forecast, so hand off the template
+                  router.push(
+                    `/log-workout?templateId=${forecastTemplateId}&fromPreview=true`
+                  );
+                }
+              }}
+              className="w-full bg-gradient-to-r from-pink-500 to-pink-700 text-white font-bold py-2 px-4 rounded-2xl shadow-glow hover:shadow-glow-hover transition duration-300 text-center"
             >
-              Skip Today
+              Start Workout
             </button>
-          ) : todaySkipped ? (
-            <button
-              disabled
-              className="w-full bg-gradient-to-br from-gray-700 to-gray-600 text-white font-bold py-2 px-4 rounded-2xl border border-pink-400 shadow-glow cursor-not-allowed text-center"
-            >
-              Skipped
-            </button>
-          ) : todayHasLog ? (
-            <button
-              disabled
-              className="w-full bg-gradient-to-br from-gray-700 to-gray-600 text-white font-bold py-2 px-4 rounded-2xl border border-pink-400 shadow-glow cursor-not-allowed text-center"
-            >
-              Logged for Today
-            </button>
-          ) : null}
-        </div>
+            {/* Show Skip Day, Skipped, or Logged button based on today's status */}
+            {!todaySkipped && !todayHasLog ? (
+              <button
+                onClick={() => setShowConfirmSkip(true)}
+                className="w-full bg-gradient-to-br from-pink-600 to-red-600 text-white font-bold py-2 px-4 rounded-2xl shadow-glow hover:shadow-glow-hover transition duration-300 text-center"
+              >
+                Skip Today
+              </button>
+            ) : todaySkipped ? (
+              <button
+                disabled
+                className="w-full bg-gradient-to-br from-gray-700 to-gray-600 text-white font-bold py-2 px-4 rounded-2xl border border-pink-400 shadow-glow cursor-not-allowed text-center"
+              >
+                Skipped
+              </button>
+            ) : todayHasLog ? (
+              <button
+                disabled
+                className="w-full bg-gradient-to-br from-gray-700 to-gray-600 text-white font-bold py-2 px-4 rounded-2xl border border-pink-400 shadow-glow cursor-not-allowed text-center"
+              >
+                Logged for Today
+              </button>
+            ) : null}
+          </div>
+        )}
       </>
       <ConfirmModal
         isOpen={showConfirmSkip}
@@ -328,7 +352,7 @@ function PreviewContent({
               date: today,
               forecast: false,
               skipped: true,
-              muscle_group: logForDate?.muscle_group || "",
+              muscle_group: logForDate?.workout_name || "",
               day: getWeekday(today),
             },
           ]);
